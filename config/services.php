@@ -35,4 +35,14 @@ return [
         ],
     ],
 
+    'oauth_server' => [
+        'sso_enable' => env('SSO_ENABLE', false),
+        'provider' => env('OAUTH_PROVIDER', 'poliwangi'),
+        'client_id' => env('OAUTH_SERVER_ID', null),
+        'client_secret' => env('OAUTH_SERVER_SECRET', null),
+        'redirect' => env('OAUTH_SERVER_REDIRECT_URI', null),
+        'uri' => env('OAUTH_SERVER_URI', null),
+        'uri_logout' => env('OAUTH_SERVER_LOGOUT_URI', null),
+    ],
+
 ];

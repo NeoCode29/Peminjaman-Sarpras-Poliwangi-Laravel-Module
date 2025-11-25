@@ -1,0 +1,286 @@
+{
+  "_metadata": {
+    "version": "1.0.0",
+    "lastUpdated": "2025-11-06",
+    "description": "Panduan desain sistem untuk Website Peminjaman Sarpras",
+    "usage": {
+      "priority": "Gunakan design tokens sebagai sumber kebenaran utama. Implementasi saat ini (currentImplementation) mencatat status CSS aktif dan harus dimigrasikan bertahap ke design tokens.",
+      "tokenNaming": "Token menggunakan format --{category}-{property}-{variant}. Contoh: --brand-primary, --surface-card, --text-muted",
+      "migration": "Ganti nilai literal CSS dengan var(--token-name). Prioritaskan komponen baru dan refactor komponen lama saat ada perubahan fitur."
+    }
+  },
+  "designTokens": {
+    "_note": "Token di bawah ini adalah sumber kebenaran (source of truth) untuk semua implementasi baru dan target migrasi implementasi lama",
+    "colors": {
+      "surface": [
+      {"token": "--surface-base", "value": "#f8f9fa", "usage": "Default page background"},
+      {"token": "--surface-card", "value": "#ffffff", "usage": "Cards, elevated containers"},
+      {"token": "--border-default", "value": "#e0e0e0", "usage": "Card and layout separators"}
+      ],
+      "text": [
+      {"token": "--text-main", "value": "#333333", "usage": "Primary body text"},
+      {"token": "--text-muted", "value": "#666666", "usage": "Secondary information text"}
+      ],
+      "brand": [
+      {"token": "--brand-primary", "value": "#333333", "usage": "Primary button background"},
+      {"token": "--brand-primary-hover", "value": "#555555", "usage": "Hover state for primary actions"},
+      {"token": "--brand-primary-pressed", "value": "#222222", "usage": "Pressed/active state for primary actions"},
+      {"token": "--brand-on-primary", "value": "#ffffff", "usage": "Text/icon on primary surfaces"},
+      {"token": "--brand-accent", "value": "#1976d2", "usage": "Links, highlighted navigation state"}
+      ],
+      "interactive": [
+      {"token": "--button-secondary-bg", "value": "#ffffff", "usage": "Secondary button background"},
+      {"token": "--button-danger-bg", "value": "#c62828", "usage": "Destructive action background"},
+      {"token": "--interactive-disabled-bg", "value": "#f1f1f1", "usage": "Disabled control background"},
+      {"token": "--interactive-disabled-text", "value": "#b0b0b0", "usage": "Disabled control text/icon"},
+      {"token": "--interactive-disabled-border", "value": "#d5d5d5", "usage": "Disabled control border"}
+      ],
+      "statusBackground": [
+      {"token": "--status-info-bg", "value": "#e3f2fd", "usage": "Informational badge/alert background"},
+      {"token": "--status-success-bg", "value": "#e8f5e8", "usage": "Success badge/alert background"},
+      {"token": "--status-warning-bg", "value": "#fff3e0", "usage": "Warning badge/alert background"},
+      {"token": "--status-danger-bg", "value": "#ffe9ec", "usage": "Error badge/alert background"}
+      ],
+      "statusText": [
+      {"token": "--status-info-text", "value": "#1976d2", "usage": "Informational text/icon"},
+      {"token": "--status-success-text", "value": "#2e7d32", "usage": "Success text/icon"},
+      {"token": "--status-warning-text", "value": "#f57c00", "usage": "Warning text/icon"},
+      {"token": "--status-danger-text", "value": "#c62828", "usage": "Error text/icon"},
+      {"token": "--status-neutral-text", "value": "#4b5563", "usage": "Neutral tag text"}
+      ],
+      "statusBorder": [
+      {"token": "--status-info-border", "value": "#cfe3ff", "usage": "Informational alert border"},
+      {"token": "--status-success-border", "value": "#cfead6", "usage": "Success alert border"},
+      {"token": "--status-warning-border", "value": "#ffe7b5", "usage": "Warning alert border"},
+      {"token": "--status-danger-border", "value": "#ffccd2", "usage": "Error alert border"}
+      ],
+      "tag": [
+      {"token": "--tag-neutral-bg", "value": "#f5f5f5", "usage": "Default tag background"},
+      {"token": "--tag-highlight-bg", "value": "#fff9c4", "usage": "Highlighted tag background"},
+      {"token": "--tag-accent-bg", "value": "#e1f5fe", "usage": "Accent tag background"}
+      ],
+      "layout": [
+        {"token": "--sidebar-bg", "value": "#333333", "usage": "Background sidebar dengan tema gelap (canonical)"},
+        {"token": "--sidebar-border", "value": "rgba(255, 255, 255, 0.12)", "usage": "Border/divider sidebar tema gelap"},
+        {"token": "--sidebar-surface", "value": "rgba(255, 255, 255, 0.08)", "usage": "Surface elemen interaktif di sidebar"},
+        {"token": "--sidebar-accent", "value": "rgba(255, 255, 255, 0.18)", "usage": "Aksen hover/focus di sidebar"},
+        {"token": "--sidebar-text", "value": "rgba(255, 255, 255, 0.86)", "usage": "Warna teks utama sidebar"},
+        {"token": "--app-shell-bg", "value": "#eaf0f7", "usage": "Background area shell di luar konten utama"},
+        {"token": "--content-bg", "value": "#f8fafc", "usage": "Background area konten utama"},
+        {"token": "--overlay-bg", "value": "rgba(15, 23, 42, 0.55)", "usage": "Overlay gelap untuk modal/sidebar mobile"}
+      ],
+      "utility": [
+        {"token": "--color-slate-400", "value": "#94a3b8", "usage": "Border placeholder, scrollbar (Tailwind slate-400)"},
+        {"token": "--color-slate-500", "value": "#64748b", "usage": "Teks helper, deskripsi sekunder (Tailwind slate-500)"},
+        {"token": "--color-slate-200", "value": "#e5ecf6", "usage": "Border ringan, separator tabel"},
+        {"token": "--color-gray-300", "value": "#d1d5db", "usage": "Border dashed, divider"},
+        {"token": "--color-blue-100", "value": "#dbe2ef", "usage": "Divider konten, border netral"}
+      ],
+      "interactionStates": [
+        {"token": "--button-secondary-hover-bg", "value": "#eef3ff", "usage": "Secondary button hover background"},
+        {"token": "--button-secondary-hover-border", "value": "#a8b4e6", "usage": "Secondary button hover border"},
+        {"token": "--button-icon-overlay", "value": "rgba(255, 255, 255, 0.15)", "usage": "Icon overlay di button primary/danger"}
+      ],
+      "scrollbar": [
+        {"token": "--scrollbar-thumb", "value": "rgba(148, 163, 184, 0.45)", "usage": "Scrollbar thumb default (slate-400 + opacity)"},
+        {"token": "--scrollbar-thumb-hover", "value": "rgba(148, 163, 184, 0.6)", "usage": "Scrollbar thumb hover state"},
+        {"token": "--sidebar-scrollbar", "value": "rgba(255, 255, 255, 0.4)", "usage": "Sidebar scrollbar thumb"},
+        {"token": "--sidebar-scrollbar-hover", "value": "rgba(255, 255, 255, 0.5)", "usage": "Sidebar scrollbar hover"}
+      ],
+      "effects": [
+        {"token": "--divider-gradient-from", "value": "rgba(199, 210, 242, 0.6)", "usage": "Gradient divider start color"},
+        {"token": "--divider-gradient-to", "value": "rgba(199, 210, 242, 0)", "usage": "Gradient divider end color (transparent)"}
+      ]
+    }
+  },
+  "currentImplementation": {
+    "_note": "Dokumentasi implementasi CSS saat ini (app.css). Nilai-nilai ini HARUS dimigrasikan ke designTokens untuk konsistensi.",
+    "cssVariables": [
+      {"token": "--sidebar-bg", "value": "#333333", "status": "✓ Sesuai designTokens"},
+      {"token": "--sidebar-border", "value": "rgba(255, 255, 255, 0.12)", "status": "✓ Sesuai designTokens"},
+      {"token": "--sidebar-surface", "value": "rgba(255, 255, 255, 0.08)", "status": "✓ Sesuai designTokens"},
+      {"token": "--sidebar-accent", "value": "rgba(255, 255, 255, 0.18)", "status": "✓ Sesuai designTokens"},
+      {"token": "--sidebar-placeholder", "value": "rgba(255, 255, 255, 0.22)", "status": "⚠ Tidak ada token, perlu mapping"},
+      {"token": "--color-primary", "value": "#475ad8", "status": "⚠ Konflik dengan --brand-primary (#333333)", "action": "Putuskan: gunakan biru atau hitam sebagai primary"},
+      {"token": "--color-primary-hover", "value": "#3e4fc0", "status": "⚠ Konflik dengan --brand-primary-hover"},
+      {"token": "--color-primary-soft", "value": "rgba(71, 90, 216, 0.12)", "status": "⚠ Perlu token baru jika biru dipertahankan"},
+      {"token": "--color-surface", "value": "#ffffff", "status": "✓ Sesuai --surface-card"},
+      {"token": "--color-soft", "value": "#f1f5fb", "status": "✓ Bisa dipakai, pertimbangkan tambah ke designTokens"},
+      {"token": "--color-border", "value": "#c7d2f2", "status": "⚠ Konflik dengan --border-default (#e0e0e0)", "action": "Unifikasi ke satu nilai border"},
+      {"token": "--color-text", "value": "#1f2933", "status": "⚠ Konflik dengan --text-main (#333333)"},
+      {"token": "--color-danger", "value": "#ea5455", "status": "⚠ Konflik dengan --button-danger-bg (#c62828)"},
+      {"token": "--color-danger-hover", "value": "#d94445", "status": "⚠ Perlu sinkronisasi dengan design tokens"}
+    ],
+    "hardcodedColors": {
+      "_note": "Warna yang di-hardcode langsung di CSS tanpa variabel. Prioritas tinggi untuk migrasi.",
+      "critical": [
+        {"value": "#f4f6fb", "location": "body { background-color }", "action": "Ganti dengan var(--surface-base) atau buat token baru --body-bg"},
+        {"value": "#eef3ff", "location": ".button--secondary:hover { background }", "action": "Tambahkan token --button-secondary-hover-bg"},
+        {"value": "#a8b4e6", "location": ".button--secondary:hover { border }", "action": "Tambahkan token --button-secondary-hover-border"},
+        {"value": "rgba(255, 255, 255, 0.15)", "location": ".button--primary .button__icon", "action": "Tambahkan token --button-icon-overlay"},
+        {"value": "#64748b", "location": "helper text, .component-demo__description", "action": "Ganti dengan var(--color-slate-500)"},
+        {"value": "#94a3b8", "location": ".placeholder-box { border }", "action": "Ganti dengan var(--color-slate-400)"},
+        {"value": "rgba(199, 210, 242, 0.6)", "location": ".component-demo__divider gradient", "action": "Buat token --divider-gradient-from"},
+        {"value": "rgba(199, 210, 242, 0)", "location": ".component-demo__divider gradient", "action": "Buat token --divider-gradient-to"},
+        {"value": "rgba(15, 23, 42, 0.55)", "location": ".app-shell__overlay", "action": "✓ Sudah ada di designTokens.colors.layout sebagai --overlay-bg"},
+        {"value": "#eaf0f7", "location": ".app-shell", "action": "✓ Sudah ada di designTokens.colors.layout sebagai --app-shell-bg"},
+        {"value": "rgba(255, 255, 255, 0.86)", "location": ".app-shell__sidebar", "action": "✓ Sudah ada di designTokens.colors.layout sebagai --sidebar-text"},
+        {"value": "rgba(255, 255, 255, 0.85)", "location": ".sidebar__toggle-icon::before", "action": "Bisa gunakan var(--sidebar-text)"},
+        {"value": "rgba(255, 255, 255, 0.05)", "location": ".sidebar__user-card", "action": "Gunakan var(--sidebar-surface) atau buat token baru"},
+        {"value": "rgba(255, 255, 255, 0.4)", "location": ".sidebar__menu::-webkit-scrollbar-thumb", "action": "Buat token --sidebar-scrollbar"},
+        {"value": "rgba(255, 255, 255, 0.35)", "location": ".sidebar__menu::-webkit-scrollbar-thumb hover", "action": "Duplikat, hapus"},
+        {"value": "rgba(255, 255, 255, 0.5)", "location": ".sidebar__menu::-webkit-scrollbar-thumb:hover", "action": "Buat token --sidebar-scrollbar-hover"},
+        {"value": "#f8fafc", "location": ".app-shell__main", "action": "✓ Sudah ada di designTokens.colors.layout sebagai --content-bg"},
+        {"value": "#dbe2ef", "location": "page/table borders", "action": "✓ Gunakan var(--color-blue-100)"},
+        {"value": "#d1d5db", "location": ".form-section border", "action": "✓ Gunakan var(--color-gray-300)"},
+        {"value": "#e5ecf6", "location": ".data-table__cell border", "action": "✓ Gunakan var(--color-slate-200)"},
+        {"value": "rgba(148, 163, 184, 0.45)", "location": ".page-tabs scrollbar", "action": "Buat token --scrollbar-thumb (slate-400 + opacity)"},
+        {"value": "rgba(148, 163, 184, 0.6)", "location": ".page-tabs scrollbar:hover", "action": "Buat token --scrollbar-thumb-hover"},
+        {"value": "rgba(148, 163, 184, 0.35)", "location": ".data-table scrollbar", "action": "Gunakan token --scrollbar-thumb"},
+        {"value": "rgba(148, 163, 184, 0.5)", "location": ".data-table scrollbar:hover", "action": "Gunakan token --scrollbar-thumb-hover"}
+      ]
+    }
+  },
+  "migrationGuide": {
+    "_note": "Petunjuk migrasi dari implementasi saat ini ke design tokens",
+    "decisionRecord": {
+      "date": "2025-11-06",
+      "decision": "Opsi B: Use Design Tokens (Standar Material)",
+      "rationale": "Menggunakan nilai dari designTokens sebagai canonical untuk konsistensi dengan standar Material Design",
+      "resolutions": [
+        {"conflict": "Primary color", "chosen": "#333333 (--brand-primary)", "deprecated": "#475ad8 (--color-primary dari app.css)"},
+        {"conflict": "Border color", "chosen": "#e0e0e0 (--border-default)", "deprecated": "#c7d2f2 (--color-border dari app.css)"},
+        {"conflict": "Text color", "chosen": "#333333 (--text-main)", "deprecated": "#1f2933 (--color-text dari app.css)"},
+        {"conflict": "Danger color", "chosen": "#c62828 (--button-danger-bg)", "deprecated": "#ea5455 (--color-danger dari app.css)"}
+      ]
+    },
+    "phase1_critical": {
+      "description": "Prioritas tertinggi: unifikasi token yang konflik",
+      "status": "✓ COMPLETED - 2025-11-06",
+      "tasks": [
+        {"item": "Putuskan primary color", "status": "✓ Resolved: #333333", "detail": "Gunakan --brand-primary dari designTokens"},
+        {"item": "Unifikasi border color", "status": "✓ Resolved: #e0e0e0", "detail": "Gunakan --border-default dari designTokens"},
+        {"item": "Unifikasi text color", "status": "✓ Resolved: #333333", "detail": "Gunakan --text-main dari designTokens"},
+        {"item": "Unifikasi danger color", "status": "✓ Resolved: #c62828", "detail": "Gunakan --button-danger-bg dari designTokens"}
+      ]
+    },
+    "phase2_tokenization": {
+      "description": "Tambahkan token yang hilang ke designTokens",
+      "status": "✓ COMPLETED - 2025-11-06",
+      "tasks": [
+        {"item": "Tambahkan scrollbar tokens", "status": "✓ Added", "detail": "--scrollbar-thumb, --scrollbar-thumb-hover, --sidebar-scrollbar, --sidebar-scrollbar-hover"},
+        {"item": "Tambahkan hover state tokens", "status": "✓ Added", "detail": "--button-secondary-hover-bg, --button-secondary-hover-border"},
+        {"item": "Tambahkan utility tokens", "status": "✓ Added", "detail": "--button-icon-overlay, --divider-gradient-from, --divider-gradient-to"}
+      ]
+    },
+    "phase3_replacement": {
+      "description": "Ganti hardcoded colors dengan var(--token)",
+      "status": "✓ COMPLETED - 2025-11-06",
+      "tasks": [
+        {"item": "Refactor app.css :root", "status": "✓ Done", "detail": "67 design tokens ditambahkan, 7 legacy vars untuk backward compatibility"},
+        {"item": "Replace hardcoded colors", "status": "✓ Done", "detail": "Semua literal colors diganti dengan var(--token) di 50+ locations"},
+        {"item": "Update components", "status": "✓ Done", "detail": "Button, sidebar, forms, tables, scrollbars - semua menggunakan tokens"}
+      ],
+      "summary": {
+        "tokensAdded": 67,
+        "legacyVarsKept": 7,
+        "hardcodedColorsReplaced": 50,
+        "componentsRefactored": ["button", "sidebar", "form-section", "form-field", "data-table", "page-tabs", "placeholder-box", "scrollbars"]
+      }
+    }
+  },
+  "typography": {
+    "fontFamily": {
+      "primary": {
+        "token": "font-family-primary",
+        "value": "\"Poppins\", system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+        "usage": "Default font family for text and controls"
+      }
+    },
+    "fontWeight": {
+      "regular": {"token": "font-weight-regular", "value": 400, "usage": "Body text and paragraphs"},
+      "medium": {"token": "font-weight-medium", "value": 500, "usage": "Section titles, emphasized labels"},
+      "semibold": {"token": "font-weight-semibold", "value": 600, "usage": "Primary headings"}
+    },
+    "scale": {
+      "base": {"token": "font-size-base", "value": "14px", "lineHeight": 1.5, "usage": "Default body text"},
+      "caption": {"token": "font-size-caption", "value": "12px", "lineHeight": 1.4, "usage": "Helper text, captions"}
+    },
+    "heading": {
+      "xl": {"token": "heading-xl", "fontSize": "24px", "lineHeight": 1.2, "fontWeight": 600, "usage": "Page titles"},
+      "lg": {"token": "heading-lg", "fontSize": "20px", "lineHeight": 1.3, "fontWeight": 500, "usage": "Section headings"},
+      "md": {"token": "heading-md", "fontSize": "16px", "lineHeight": 1.4, "fontWeight": 500, "usage": "Card titles, form section headers"},
+      "sm": {"token": "heading-sm", "fontSize": "14px", "lineHeight": 1.4, "fontWeight": 400, "usage": "Subtitles, supporting text"},
+      "xs": {"token": "heading-xs", "fontSize": "13px", "lineHeight": 1.4, "fontWeight": 500, "usage": "Compact section labels"}
+    },
+    "body": {
+      "default": {"token": "body-default", "fontSize": "14px", "lineHeight": 1.5, "fontWeight": 400, "usage": "Standard body copy"},
+      "strong": {"token": "body-strong", "fontSize": "14px", "lineHeight": 1.5, "fontWeight": 500, "usage": "Highlight text in body"},
+      "muted": {"token": "body-muted", "fontSize": "14px", "lineHeight": 1.4, "fontWeight": 400, "usage": "Secondary information text"}
+    },
+    "label": {
+      "default": {"token": "label-default", "fontSize": "13px", "lineHeight": 1.4, "fontWeight": 500, "usage": "Form labels, metadata"},
+      "helper": {"token": "label-helper", "fontSize": "12px", "lineHeight": 1.4, "fontWeight": 400, "usage": "Inline helper text"}
+    },
+    "responsive": {
+      "breakpoints": [
+        {"token": "heading-xl-mobile", "fontSize": "20px", "lineHeight": 1.3, "usage": "Page title on screens <= 768px"},
+        {"token": "heading-lg-mobile", "fontSize": "18px", "lineHeight": 1.35, "usage": "Section heading on screens <= 768px"},
+        {"token": "body-default-mobile", "fontSize": "13px", "lineHeight": 1.5, "usage": "Body copy on screens <= 480px"}
+      ],
+      "guidance": "Gunakan token mobile saat viewport mengecil untuk menjaga keterbacaan dan ritme visual."
+    }
+  },
+  "components": {
+    "button": {
+      "naming": {
+        "block": "c-button",
+        "elements": [
+          {"class": "c-button__icon", "usage": "Ikon dalam tombol, memastikan alignment dengan label"}
+        ]
+      },
+      "base": {
+        "class": "c-button",
+        "properties": [
+          {"property": "border-radius", "value": "6px", "usage": "Membulatkan sudut tombol untuk konsistensi UI"},
+          {"property": "padding", "value": "12px 24px", "usage": "Ruang internal tombol default"},
+          {"property": "gap", "value": "var(--spacing-sm)", "usage": "Jarak antara ikon dan teks dalam tombol"}
+        ]
+      },
+      "sizes": [
+        {"modifier": "c-button--size-default", "fontSize": "14px", "padding": "12px 24px", "usage": "Tombol utama pada desktop"},
+        {"modifier": "c-button--size-sm", "fontSize": "12px", "padding": "8px 14px", "usage": "Tombol sekunder atau area sempit"},
+        {"modifier": "c-button--size-tablet", "fontSize": "13px", "padding": "10px 20px", "usage": "Viewport tablet agar tombol lebih ringkas"},
+        {"modifier": "c-button--size-mobile", "fontSize": "12px", "padding": "10px 16px", "usage": "Viewport mobile agar tombol tidak terlalu besar"}
+      ],
+      "variants": {
+        "filled": [
+          {"modifier": "c-button--primary", "background": "var(--brand-primary)", "textColor": "#ffffff", "usage": "Aksi utama"},
+          {"modifier": "c-button--secondary", "background": "#ffffff", "textColor": "var(--text-main)", "border": "1px solid var(--border-default)", "usage": "Aksi sekunder"},
+          {"modifier": "c-button--danger", "background": "#c62828", "textColor": "#ffffff", "usage": "Aksi destruktif"},
+          {"modifier": "c-button--warning", "background": "#ffc107", "textColor": "var(--text-main)", "usage": "Aksi peringatan"},
+          {"modifier": "c-button--info", "background": "#007bff", "textColor": "#ffffff", "usage": "Aksi informasional"}
+        ],
+        "outline": [
+          {"modifier": "c-button--outline-primary", "border": "2px solid var(--brand-primary)", "textColor": "var(--brand-primary)", "usage": "Aksi alternatif bernuansa utama"},
+          {"modifier": "c-button--outline-secondary", "border": "2px solid var(--text-muted)", "textColor": "var(--text-muted)", "usage": "Aksi sekunder ringan"},
+          {"modifier": "c-button--outline-danger", "border": "2px solid #c62828", "textColor": "#c62828", "usage": "Aksi destruktif bernuansa ringan"},
+          {"modifier": "c-button--outline-success", "border": "2px solid #28a745", "textColor": "#28a745", "usage": "Aksi sukses bernuansa ringan"},
+          {"modifier": "c-button--outline-warning", "border": "2px solid #ffc107", "textColor": "#ffc107", "usage": "Peringatan bernuansa ringan"},
+          {"modifier": "c-button--outline-info", "border": "2px solid #007bff", "textColor": "#007bff", "usage": "Aksi informasional ringan"}
+        ]
+      },
+      "states": [
+        {"selector": ".c-button:hover", "value": "transform: translateY(-1px); border-color menyesuaikan varian", "usage": "Umpan balik hover pada perangkat pointer"},
+        {"selector": ".c-button:active", "value": "transform: scale(0.99)", "usage": "Tekanan tombol pada perangkat sentuh"},
+        {"class": "is-loading", "value": "Spinner pseudo-element + opacity 0.7", "usage": "Menandakan proses berlangsung"},
+        {"class": "is-disabled", "value": "Gunakan token --interactive-disabled-*", "usage": "Menonaktifkan tombol"}
+      ],
+      "utilities": [
+        {"class": "c-button--block", "value": "display: block; width: 100%", "usage": "Tombol memenuhi lebar container"},
+        {"class": "c-button-group", "value": "display: flex; gap: var(--spacing-sm)", "usage": "Mengelompokkan tombol secara horizontal"},
+        {"class": "c-button--with-icon", "value": "inline-flex; align-items: center; gap: var(--spacing-sm)", "usage": "Penempatan ikon bersama label tombol"}
+      ]
+    }
+  }
+}
