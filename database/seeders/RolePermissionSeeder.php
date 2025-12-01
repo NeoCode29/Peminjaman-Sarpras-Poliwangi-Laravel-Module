@@ -49,6 +49,7 @@ class RolePermissionSeeder extends Seeder
                 'role.create',
                 'role.edit',
                 'role.delete',
+                'sarpras.manage',
                 'sarpras.view',
                 'sarpras.create',
                 'sarpras.edit',
@@ -143,7 +144,7 @@ class RolePermissionSeeder extends Seeder
             'manage', 'view', 'create', 'edit', 'delete', 'block', 'unblock', 'role_edit',
         ],
         'sarpras' => [
-            'view', 'create', 'edit', 'delete', 'status_update', 'unit_manage', 'assign_specific_approver',
+            'manage', 'view', 'create', 'edit', 'delete', 'status_update', 'unit_manage', 'assign_specific_approver',
         ],
         'peminjaman' => [
             'view', 'create', 'edit', 'cancel', 'approve_global', 'reject_global', 'approve_specific',
@@ -183,6 +184,7 @@ class RolePermissionSeeder extends Seeder
         'user.unblock' => 'Mengaktifkan kembali akses pengguna yang diblokir.',
         'user.role_edit' => 'Mengatur role dan permission yang dimiliki pengguna.',
 
+        'sarpras.manage' => 'Mengakses halaman manajemen sarana dan kategori sarana (CRUD penuh).',
         'sarpras.view' => 'Melihat katalog sarana dan prasarana.',
         'sarpras.create' => 'Menambahkan sarana atau prasarana baru.',
         'sarpras.edit' => 'Memperbarui detail sarana atau prasarana.',

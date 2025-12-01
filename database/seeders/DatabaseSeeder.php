@@ -18,6 +18,9 @@ class DatabaseSeeder extends Seeder
             MenuSeeder::class,
             SystemSettingSeeder::class,
             NotificationSeeder::class,
+            
+            // Module Seeders
+            \Modules\SaranaManagement\Database\Seeders\SaranaManagementDatabaseSeeder::class,
         ]);
     }
 }

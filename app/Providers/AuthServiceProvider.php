@@ -21,6 +21,11 @@ class AuthServiceProvider extends ServiceProvider
         Role::class => RolePolicy::class,
         Permission::class => PermissionPolicy::class,
         User::class => UserPolicy::class,
+        
+        // Module Policies
+        \Modules\SaranaManagement\Entities\Sarana::class => \Modules\SaranaManagement\Policies\SaranaPolicy::class,
+        \Modules\SaranaManagement\Entities\KategoriSarana::class => \Modules\SaranaManagement\Policies\KategoriSaranaPolicy::class,
+        \Modules\SaranaManagement\Entities\SaranaApprover::class => \Modules\SaranaManagement\Policies\SaranaApproverPolicy::class,
     ];
 
     /**
