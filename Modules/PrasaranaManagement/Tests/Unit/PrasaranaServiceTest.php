@@ -2,6 +2,7 @@
 
 namespace Modules\PrasaranaManagement\Tests\Unit;
 
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
@@ -30,6 +31,7 @@ class PrasaranaServiceTest extends TestCase
         Storage::fake('public');
 
         $kategori = KategoriPrasarana::factory()->create();
+        $creator = User::factory()->create();
         $file1 = UploadedFile::fake()->image('ruang1.jpg');
         $file2 = UploadedFile::fake()->image('ruang2.jpg');
 
@@ -40,7 +42,7 @@ class PrasaranaServiceTest extends TestCase
             'lokasi' => 'Gedung A',
             'kapasitas' => 30,
             'status' => 'tersedia',
-        ], 1, [$file1, $file2]);
+        ], $creator->id, [$file1, $file2]);
 
         $this->assertCount(2, $prasarana->images);
         foreach ($prasarana->images as $image) {
@@ -53,6 +55,7 @@ class PrasaranaServiceTest extends TestCase
         Storage::fake('public');
 
         $kategori = KategoriPrasarana::factory()->create();
+        $creator = User::factory()->create();
         $initialFiles = [
             UploadedFile::fake()->image('old1.jpg'),
             UploadedFile::fake()->image('old2.jpg'),
@@ -65,7 +68,7 @@ class PrasaranaServiceTest extends TestCase
             'lokasi' => 'Gedung B',
             'kapasitas' => 100,
             'status' => 'tersedia',
-        ], 1, $initialFiles);
+        ], $creator->id, $initialFiles);
 
         $this->assertCount(2, $prasarana->images);
 
@@ -92,6 +95,7 @@ class PrasaranaServiceTest extends TestCase
         Storage::fake('public');
 
         $kategori = KategoriPrasarana::factory()->create();
+        $creator = User::factory()->create();
         $file = UploadedFile::fake()->image('ruang.jpg');
 
         $prasarana = $this->service->create([
@@ -101,7 +105,7 @@ class PrasaranaServiceTest extends TestCase
             'lokasi' => 'Gedung C',
             'kapasitas' => 40,
             'status' => 'tersedia',
-        ], 1, [$file]);
+        ], $creator->id, [$file]);
 
         $imagePath = $prasarana->images->first()->image_url;
         Storage::disk('public')->assertExists($imagePath);
