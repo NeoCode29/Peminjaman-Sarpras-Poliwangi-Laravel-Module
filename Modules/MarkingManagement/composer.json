@@ -1,0 +1,21 @@
+{
+    "name": "nwidart/markingmanagement",
+    "description": "Module untuk mengelola marking (reservasi sementara) prasarana dan sarana",
+    "authors": [
+        {
+            "name": "nwidart",
+            "email": "n.widart@gmail.com"
+        }
+    ],
+    "extra": {
+        "laravel": {
+            "providers": [],
+            "aliases": {}
+        }
+    },
+    "autoload": {
+        "psr-4": {
+            "Modules\\MarkingManagement\\": ""
+        }
+    }
+}

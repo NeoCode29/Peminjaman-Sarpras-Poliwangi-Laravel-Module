@@ -14,6 +14,7 @@ class DatabaseSeeder extends Seeder
         $this->call([
             RolePermissionSeeder::class,
             PoliwangiMasterDataSeeder::class,
+            UkmSeeder::class,
             AdminUserSeeder::class,
             MenuSeeder::class,
             SystemSettingSeeder::class,
@@ -22,6 +23,7 @@ class DatabaseSeeder extends Seeder
             // Module Seeders
             \Modules\SaranaManagement\Database\Seeders\SaranaManagementDatabaseSeeder::class,
             \Modules\PrasaranaManagement\Database\Seeders\PrasaranaManagementDatabaseSeeder::class,
+            \Modules\MarkingManagement\Database\Seeders\MarkingManagementDatabaseSeeder::class,
         ]);
     }
 }
