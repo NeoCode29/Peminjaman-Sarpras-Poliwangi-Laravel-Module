@@ -16,6 +16,8 @@ use App\Listeners\StoreSaranaAudit;
 use App\Listeners\StorePrasaranaAudit;
 use App\Listeners\StoreUserAudit;
 use Illuminate\Foundation\Support\Providers\EventServiceProvider as ServiceProvider;
+use Modules\MarkingManagement\Events\MarkingAuditLogged;
+use Modules\MarkingManagement\Listeners\StoreMarkingAudit;
 
 class EventServiceProvider extends ServiceProvider
 {
@@ -37,6 +39,9 @@ class EventServiceProvider extends ServiceProvider
         ],
         UserAuditLogged::class => [
             StoreUserAudit::class,
+        ],
+        MarkingAuditLogged::class => [
+            StoreMarkingAudit::class,
         ],
     ];
 

@@ -1,0 +1,13 @@
+{
+    "name": "MarkingManagement",
+    "alias": "markingmanagement",
+    "description": "Module untuk mengelola marking (reservasi sementara) prasarana dan sarana",
+    "keywords": ["marking", "reservasi", "peminjaman"],
+    "priority": 0,
+    "providers": [
+        "Modules\\MarkingManagement\\Providers\\MarkingManagementServiceProvider"
+    ],
+    "aliases": {},
+    "files": [],
+    "requires": []
+}

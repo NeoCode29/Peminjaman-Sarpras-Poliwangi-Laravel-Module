@@ -29,6 +29,7 @@ class AuthServiceProvider extends ServiceProvider
         \Modules\PrasaranaManagement\Entities\Prasarana::class => \Modules\PrasaranaManagement\Policies\PrasaranaPolicy::class,
         \Modules\PrasaranaManagement\Entities\KategoriPrasarana::class => \Modules\PrasaranaManagement\Policies\KategoriPrasaranaPolicy::class,
         \Modules\PrasaranaManagement\Entities\PrasaranaApprover::class => \Modules\PrasaranaManagement\Policies\PrasaranaApproverPolicy::class,
+        \Modules\MarkingManagement\Entities\Marking::class => \Modules\MarkingManagement\Policies\MarkingPolicy::class,
     ];
 
     /**
