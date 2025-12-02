@@ -1,0 +1,13 @@
+{
+    "name": "PrasaranaManagement",
+    "alias": "prasaranamanagement",
+    "description": "",
+    "keywords": [],
+    "priority": 0,
+    "providers": [
+        "Modules\\PrasaranaManagement\\Providers\\PrasaranaManagementServiceProvider"
+    ],
+    "aliases": {},
+    "files": [],
+    "requires": []
+}

@@ -1,8 +1,8 @@
 @extends('layouts.app')
 
-@section('title', 'Detail Sarana')
-@section('page-title', 'Detail Sarana')
-@section('page-subtitle', 'Informasi lengkap sarana dan status ketersediaannya')
+@section('title', 'Detail Prasarana')
+@section('page-title', 'Detail Prasarana')
+@section('page-subtitle', 'Informasi lengkap prasarana dan gambar terkait')
 
 @section('content')
 <div class="page-content">
@@ -32,116 +32,101 @@
     @endif
 
     <x-detail-section
-        :title="$sarana->nama"
-        :description="'Kode: ' . $sarana->kode_sarana . ' · Kategori: ' . ($sarana->kategori->nama ?? '-')"
+        :title="$prasarana->name"
+        :description="($prasarana->kategori?->name ? $prasarana->kategori->name . ' · ' : '') . ($prasarana->lokasi ?? 'Lokasi belum diisi')"
     >
         <x-detail-list :columns="2" variant="bordered">
-            <x-detail-item label="Kode Sarana">
-                {{ $sarana->kode_sarana }}
+            <x-detail-item label="Nama Prasarana">
+                {{ $prasarana->name }}
             </x-detail-item>
 
             <x-detail-item label="Kategori">
-                {{ $sarana->kategori->nama ?? '-' }}
+                {{ $prasarana->kategori->name ?? '-' }}
             </x-detail-item>
 
-            <x-detail-item label="Merk">
-                {{ $sarana->merk ?? '-' }}
+            <x-detail-item label="Lokasi">
+                {{ $prasarana->lokasi ?? '-' }}
             </x-detail-item>
 
-            <x-detail-item label="Kondisi">
-                <x-badge variant="default" size="sm">
-                    {{ ucfirst(str_replace('_', ' ', $sarana->kondisi)) }}
-                </x-badge>
+            <x-detail-item label="Kapasitas">
+                {{ $prasarana->kapasitas ?? '-' }}
             </x-detail-item>
 
-            <x-detail-item label="Status Ketersediaan">
+            <x-detail-item label="Status">
                 @php
-                    $statusVariant = $sarana->status_ketersediaan === 'tersedia' ? 'success'
-                        : ($sarana->status_ketersediaan === 'dipinjam' ? 'warning'
-                        : ($sarana->status_ketersediaan === 'dalam_perbaikan' ? 'primary' : 'default'));
+                    $statusVariant = match($prasarana->status) {
+                        'tersedia' => 'success',
+                        'rusak' => 'danger',
+                        'maintenance' => 'warning',
+                        default => 'default',
+                    };
                 @endphp
-                <x-badge :variant="$statusVariant" size="sm">
-                    {{ ucfirst(str_replace('_', ' ', $sarana->status_ketersediaan)) }}
+                <x-badge :variant="$statusVariant" size="sm" rounded>
+                    {{ ucfirst($prasarana->status) }}
                 </x-badge>
             </x-detail-item>
 
-            <x-detail-item label="Jumlah Total">
-                {{ $sarana->jumlah_total }}
-            </x-detail-item>
-
-            <x-detail-item label="Unit Tersedia">
-                {{ $sarana->jumlah_tersedia }}
-            </x-detail-item>
-
-            <x-detail-item label="Tahun Pembelian">
-                {{ $sarana->tahun_perolehan ?? '-' }}
-            </x-detail-item>
-
-            <x-detail-item label="Harga Beli">
-                {{ $sarana->nilai_perolehan ? 'Rp ' . number_format($sarana->nilai_perolehan, 0, ',', '.') : '-' }}
-            </x-detail-item>
-
-            <x-detail-item label="Lokasi Penyimpanan" :full="true">
-                {{ $sarana->lokasi_penyimpanan ?? '-' }}
-            </x-detail-item>
-
-            <x-detail-item label="Keterangan" :full="true">
-                {{ $sarana->keterangan ?? 'Tidak ada keterangan tambahan.' }}
+            <x-detail-item label="Deskripsi" :full="true">
+                {{ $prasarana->description ?: 'Belum ada deskripsi.' }}
             </x-detail-item>
         </x-detail-list>
 
-        {{-- Panel Foto --}}
-        @if($sarana->foto_url)
-            <div class="u-action-group">
-                <div class="u-photo-panel">
-                    <div class="u-photo-card">
-                        <span class="c-input__label u-photo-card__label">Foto</span>
-                        <div class="u-photo-card__image-wrapper">
-                            <img src="{{ $sarana->foto_url }}" alt="{{ $sarana->nama }}" class="u-photo-card__image">
-                        </div>
-                    </div>
-                </div>
-            </div>
-        @endif
+        {{-- Gallery --}}
+        <div class="u-gallery-section">
+            <h3 class="u-gallery-title">Gambar Prasarana</h3>
 
-        {{-- Actions --}}
+            @if($prasarana->images->count() > 0)
+                <x-carousel :autoplay="true" :interval="5000" class="u-carousel-mt">
+                    @foreach($prasarana->images as $image)
+                        <div class="c-carousel__slide">
+                            <img
+                                src="{{ asset('storage/' . $image->image_url) }}"
+                                alt="Gambar Prasarana"
+                                loading="lazy"
+                            >
+                            <div class="c-carousel__slide-content">
+                                <strong>{{ $prasarana->name }}</strong>
+                                <div class="u-slide-meta">
+                                    {{ basename($image->image_url) }}
+                                </div>
+                            </div>
+                        </div>
+                    @endforeach
+                </x-carousel>
+            @else
+                <p class="u-text-empty">
+                    Belum ada gambar yang diunggah untuk prasarana ini.
+                </p>
+            @endif
+        </div>
+
         <div class="u-action-group">
-            <a href="{{ route('sarana.index') }}" class="u-link-plain">
+            <a href="{{ route('prasarana.index') }}" class="u-link-plain">
                 <x-button type="button" variant="secondary">
                     Kembali ke Daftar
                 </x-button>
             </a>
-            @can('update', $sarana)
-                <a href="{{ route('sarana.edit', $sarana) }}" class="u-link-plain">
+            @can('update', $prasarana)
+                <a href="{{ route('prasarana.edit', $prasarana) }}" class="u-link-plain">
                     <x-button type="button" variant="primary">
-                        Edit Sarana
+                        Edit Prasarana
                     </x-button>
                 </a>
             @endcan
-
-            @if($sarana->type === 'serialized')
-                @can('manageUnits', $sarana)
-                    <a href="{{ route('sarana.units.index', $sarana) }}" class="u-link-plain">
-                        <x-button type="button" variant="secondary">
-                            Kelola Unit
-                        </x-button>
-                    </a>
-                @endcan
-            @endif
         </div>
     </x-detail-section>
 
-    @can('viewAny', [\Modules\SaranaManagement\Entities\SaranaApprover::class, $sarana])
+    @can('viewAny', [\Modules\PrasaranaManagement\Entities\PrasaranaApprover::class, $prasarana])
         <x-detail-section
-            title="Approver Sarana"
-            description="Kelola daftar approver khusus untuk sarana ini."
+            title="Approver Prasarana"
+            description="Kelola daftar approver khusus untuk prasarana ini."
         >
-            @can('create', [\Modules\SaranaManagement\Entities\SaranaApprover::class, $sarana])
+            @can('create', [\Modules\PrasaranaManagement\Entities\PrasaranaApprover::class, $prasarana])
                 <x-slot:headerActions>
                     <x-button
                         type="button"
                         variant="primary"
-                        onclick="document.getElementById('addSaranaApproverModal').open()"
+                        onclick="document.getElementById('addPrasaranaApproverModal').open()"
                     >
                         Tambah Approver
                     </x-button>
@@ -190,7 +175,7 @@
                                                     type="button"
                                                     size="sm"
                                                     variant="secondary"
-                                                    onclick="document.getElementById('editSaranaApproverModal-{{ $approver->id }}').open()"
+                                                    onclick="document.getElementById('editPrasaranaApproverModal-{{ $approver->id }}').open()"
                                                     class="u-btn-mr-xs"
                                                 >
                                                     Edit
@@ -201,7 +186,7 @@
                                                     type="button"
                                                     size="sm"
                                                     variant="danger"
-                                                    onclick="document.getElementById('deleteSaranaApproverModal-{{ $approver->id }}').open()"
+                                                    onclick="document.getElementById('deletePrasaranaApproverModal-{{ $approver->id }}').open()"
                                                 >
                                                     Hapus
                                                 </x-button>
@@ -226,46 +211,14 @@
 </div>
 @endsection
 
-@foreach($approvers as $approver)
-    @can('delete', $approver)
-        <x-modal id="deleteSaranaApproverModal-{{ $approver->id }}" title="Hapus Approver" size="sm">
-            <form
-                id="delete-sarana-approver-form-{{ $approver->id }}"
-                action="{{ route('sarana.approvers.destroy', [$sarana, $approver]) }}"
-                method="POST"
-                class="u-modal-form--delete"
-            >
-                @csrf
-                @method('DELETE')
-
-                <p class="u-confirm-text">
-                    Yakin ingin menghapus approver <strong>{{ $approver->approver->name ?? '-' }}</strong> untuk sarana ini?
-                </p>
-            </form>
-
-            <x-slot:footer>
-                <x-button type="button" variant="secondary" data-modal-close>
-                    Batal
-                </x-button>
-                <x-button
-                    type="submit"
-                    variant="danger"
-                    form="delete-sarana-approver-form-{{ $approver->id }}"
-                >
-                    Hapus
-                </x-button>
-            </x-slot:footer>
-        </x-modal>
-    @endcan
-@endforeach
-
-@can('create', [\Modules\SaranaManagement\Entities\SaranaApprover::class, $sarana])
-    <x-modal id="addSaranaApproverModal" title="Tambah Approver Sarana" size="sm">
+{{-- Modal Tambah Approver (Global) --}}
+@can('create', [\Modules\PrasaranaManagement\Entities\PrasaranaApprover::class, $prasarana])
+    <x-modal id="addPrasaranaApproverModal" title="Tambah Approver Prasarana" size="sm">
         <form
-            id="add-sarana-approver-form"
+            id="add-prasarana-approver-form"
             method="POST"
-            action="{{ route('sarana.approvers.store', $sarana) }}"
-            style="display:flex; flex-direction:column; gap:0.75rem;"
+            action="{{ route('prasarana.approvers.store', $prasarana) }}"
+            class="u-modal-form"
         >
             @csrf
 
@@ -306,7 +259,7 @@
             <x-button
                 type="submit"
                 variant="primary"
-                form="add-sarana-approver-form"
+                form="add-prasarana-approver-form"
             >
                 Simpan Approver
             </x-button>
@@ -314,13 +267,14 @@
     </x-modal>
 @endcan
 
+{{-- Modal Edit & Delete Approver --}}
 @foreach($approvers as $approver)
     @can('update', $approver)
-        <x-modal id="editSaranaApproverModal-{{ $approver->id }}" title="Edit Approver Sarana" size="sm">
+        <x-modal id="editPrasaranaApproverModal-{{ $approver->id }}" title="Edit Approver Prasarana" size="sm">
             <form
-                id="edit-sarana-approver-form-{{ $approver->id }}"
+                id="edit-prasarana-approver-form-{{ $approver->id }}"
                 method="POST"
-                action="{{ route('sarana.approvers.update', [$sarana, $approver]) }}"
+                action="{{ route('prasarana.approvers.update', [$prasarana, $approver]) }}"
                 class="u-modal-form"
             >
                 @csrf
@@ -350,12 +304,42 @@
                 <x-button
                     type="submit"
                     variant="primary"
-                    form="edit-sarana-approver-form-{{ $approver->id }}"
+                    form="edit-prasarana-approver-form-{{ $approver->id }}"
                 >
                     Simpan Perubahan
                 </x-button>
             </x-slot:footer>
         </x-modal>
     @endcan
-@endforeach
 
+    @can('delete', $approver)
+        <x-modal id="deletePrasaranaApproverModal-{{ $approver->id }}" title="Hapus Approver" size="sm">
+            <form
+                id="delete-prasarana-approver-form-{{ $approver->id }}"
+                action="{{ route('prasarana.approvers.destroy', [$prasarana, $approver]) }}"
+                method="POST"
+                class="u-modal-form--delete"
+            >
+                @csrf
+                @method('DELETE')
+
+                <p class="u-confirm-text">
+                    Yakin ingin menghapus approver <strong>{{ $approver->approver->name ?? '-' }}</strong> untuk prasarana ini?
+                </p>
+            </form>
+
+            <x-slot:footer>
+                <x-button type="button" variant="secondary" data-modal-close>
+                    Batal
+                </x-button>
+                <x-button
+                    type="submit"
+                    variant="danger"
+                    form="delete-prasarana-approver-form-{{ $approver->id }}"
+                >
+                    Hapus
+                </x-button>
+            </x-slot:footer>
+        </x-modal>
+    @endcan
+@endforeach

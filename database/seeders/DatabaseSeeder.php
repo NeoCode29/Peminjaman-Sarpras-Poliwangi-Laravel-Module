@@ -21,6 +21,7 @@ class DatabaseSeeder extends Seeder
             
             // Module Seeders
             \Modules\SaranaManagement\Database\Seeders\SaranaManagementDatabaseSeeder::class,
+            \Modules\PrasaranaManagement\Database\Seeders\PrasaranaManagementDatabaseSeeder::class,
         ]);
     }
 }

@@ -26,6 +26,9 @@ class AuthServiceProvider extends ServiceProvider
         \Modules\SaranaManagement\Entities\Sarana::class => \Modules\SaranaManagement\Policies\SaranaPolicy::class,
         \Modules\SaranaManagement\Entities\KategoriSarana::class => \Modules\SaranaManagement\Policies\KategoriSaranaPolicy::class,
         \Modules\SaranaManagement\Entities\SaranaApprover::class => \Modules\SaranaManagement\Policies\SaranaApproverPolicy::class,
+        \Modules\PrasaranaManagement\Entities\Prasarana::class => \Modules\PrasaranaManagement\Policies\PrasaranaPolicy::class,
+        \Modules\PrasaranaManagement\Entities\KategoriPrasarana::class => \Modules\PrasaranaManagement\Policies\KategoriPrasaranaPolicy::class,
+        \Modules\PrasaranaManagement\Entities\PrasaranaApprover::class => \Modules\PrasaranaManagement\Policies\PrasaranaApproverPolicy::class,
     ];
 
     /**

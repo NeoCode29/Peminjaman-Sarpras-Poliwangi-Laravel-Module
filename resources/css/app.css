@@ -4520,3 +4520,131 @@ body.app-shell--sidebar-open {
     width: 12px;
     height: 12px;
 }
+
+/* ==========================================================================
+   Utility Classes - Detail Pages
+   ========================================================================== */
+
+/* Toast container positioning */
+.u-toast-container {
+    position: fixed;
+    top: 1rem;
+    right: 1rem;
+    z-index: 50;
+}
+
+/* Action button groups */
+.u-action-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    margin-top: 2rem;
+}
+
+/* Link without decoration */
+.u-link-plain {
+    text-decoration: none;
+}
+
+/* Flex layouts */
+.u-flex-wrap {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1.5rem;
+    align-items: flex-start;
+}
+
+.u-flex-grow {
+    flex: 2;
+    min-width: 260px;
+}
+
+/* Gallery section */
+.u-gallery-section {
+    margin-top: 2rem;
+}
+
+.u-gallery-title {
+    font-size: 1rem;
+    font-weight: 600;
+    margin-bottom: 0.75rem;
+}
+
+/* Photo panel */
+.u-photo-panel {
+    flex: 1;
+    min-width: 220px;
+}
+
+.u-photo-card {
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+    padding: 12px;
+    background: #ffffff;
+}
+
+.u-photo-card__label {
+    font-size: 0.75rem;
+}
+
+.u-photo-card__image-wrapper {
+    margin-top: 8px;
+}
+
+.u-photo-card__image {
+    width: 100%;
+    max-height: 220px;
+    object-fit: contain;
+    border-radius: 6px;
+}
+
+/* Empty state text */
+.u-text-empty {
+    font-size: 0.9rem;
+    color: var(--text-muted);
+}
+
+.u-text-muted-sm {
+    font-size: 0.85rem;
+    color: #6b7280;
+}
+
+/* Modal form layout */
+.u-modal-form {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.u-modal-form--delete {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+/* Confirmation text */
+.u-confirm-text {
+    font-size: 0.9rem;
+    color: var(--text-muted);
+}
+
+/* Pagination wrapper */
+.u-pagination-wrapper {
+    margin-top: 0.75rem;
+}
+
+/* Button spacing in table */
+.u-btn-mr-xs {
+    margin-right: 0.25rem;
+}
+
+/* Carousel margin */
+.u-carousel-mt {
+    margin-top: 0.5rem;
+}
+
+/* Slide content overlay */
+.u-slide-meta {
+    font-size: 0.8rem;
+    opacity: 0.9;
+}

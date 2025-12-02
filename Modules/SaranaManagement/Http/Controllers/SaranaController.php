@@ -80,8 +80,11 @@ class SaranaController extends Controller
         // Approvers dengan pagination
         $approvers = $this->saranaApproverService->getApproversForSarana($sarana->id, [], 10);
 
-        // Daftar user yang bisa dipilih sebagai approver
-        $availableApprovers = User::orderBy('name')->get();
+        // Daftar user yang bisa dipilih sebagai approver (exclude existing approvers)
+        $existingApproverIds = $sarana->approvers()->pluck('approver_id')->toArray();
+        $availableApprovers = User::whereNotIn('id', $existingApproverIds)
+            ->orderBy('name')
+            ->get();
         
         return view('saranamanagement::sarana.show', compact('sarana', 'availableApprovers', 'approvers'));
     }
