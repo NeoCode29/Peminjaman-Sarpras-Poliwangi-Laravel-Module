@@ -1,0 +1,13 @@
+{
+    "name": "SaranaManagement",
+    "alias": "saranamanagement",
+    "description": "",
+    "keywords": [],
+    "priority": 0,
+    "providers": [
+        "Modules\\SaranaManagement\\Providers\\SaranaManagementServiceProvider"
+    ],
+    "aliases": {},
+    "files": [],
+    "requires": []
+}

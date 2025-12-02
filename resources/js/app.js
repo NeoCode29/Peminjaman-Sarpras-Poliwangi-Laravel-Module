@@ -84,11 +84,34 @@ const initPasswordToggle = () => {
     });
 };
 
+const initExistingFileControls = () => {
+    const removeButtons = document.querySelectorAll('[data-existing-file-remove]');
+
+    removeButtons.forEach((button) => {
+        const wrapper = button.closest('[data-existing-file-wrapper]');
+        const hiddenInput = wrapper?.querySelector('[data-existing-file-remove-input]');
+
+        if (!wrapper || !hiddenInput) {
+            return;
+        }
+
+        button.addEventListener('click', (event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            hiddenInput.value = '1';
+            wrapper.style.display = 'none';
+        });
+    });
+};
+
 const initFilePreview = () => {
     const fileInputs = document.querySelectorAll('[data-file-input]');
 
     fileInputs.forEach((input) => {
-        const previewContainer = input.closest('.c-file')?.querySelector('[data-file-preview]');
+        const fileWrapper = input.closest('.c-file');
+        const previewContainer = fileWrapper?.querySelector('[data-file-preview]');
+        const clearButton = fileWrapper?.querySelector('[data-file-clear]');
+        const triggerButton = fileWrapper?.querySelector('.c-file__button');
 
         if (!previewContainer) {
             return;
@@ -101,12 +124,34 @@ const initFilePreview = () => {
             return `${(bytes / Math.pow(1024, index)).toFixed(1)} ${units[index]}`;
         };
 
+        const resetPreview = () => {
+            previewContainer.innerHTML = '';
+            previewContainer.hidden = true;
+
+            if (clearButton) {
+                clearButton.hidden = true;
+            }
+        };
+
+        // Batasi pembukaan dialog file hanya lewat tombol visual,
+        // bukan seluruh area komponen, untuk mencegah konflik dengan tombol lain.
+        if (input) {
+            input.style.pointerEvents = 'none';
+        }
+
+        if (triggerButton) {
+            triggerButton.addEventListener('click', (event) => {
+                event.preventDefault();
+                event.stopPropagation();
+                input.click();
+            });
+        }
+
         input.addEventListener('change', () => {
             const files = Array.from(input.files ?? []);
 
             if (files.length === 0) {
-                previewContainer.innerHTML = '';
-                previewContainer.hidden = true;
+                resetPreview();
                 return;
             }
 
@@ -131,7 +176,18 @@ const initFilePreview = () => {
                 .join('');
 
             previewContainer.hidden = false;
+
+            if (clearButton) {
+                clearButton.hidden = false;
+            }
         });
+
+        if (clearButton) {
+            clearButton.addEventListener('click', () => {
+                input.value = '';
+                resetPreview();
+            });
+        }
     });
 };
 
@@ -653,6 +709,7 @@ document.addEventListener('DOMContentLoaded', () => {
     initSidebar();
     initPasswordToggle();
     initFilePreview();
+    initExistingFileControls();
     initModal();
     initDropdown();
     initTabs();
