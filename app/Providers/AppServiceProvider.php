@@ -16,12 +16,14 @@ use App\Repositories\Interfaces\RoleRepositoryInterface;
 use App\Repositories\Interfaces\StaffEmployeeRepositoryInterface;
 use App\Repositories\Interfaces\StudentRepositoryInterface;
 use App\Repositories\Interfaces\UserRepositoryInterface;
+use App\Repositories\Interfaces\GlobalApproverRepositoryInterface;
 use App\Repositories\OAuthTokenRepository;
 use App\Repositories\PermissionRepository;
 use App\Repositories\RoleRepository;
 use App\Repositories\StaffEmployeeRepository;
 use App\Repositories\StudentRepository;
 use App\Repositories\UserRepository;
+use App\Repositories\GlobalApproverRepository;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -40,6 +42,7 @@ class AppServiceProvider extends ServiceProvider
         $this->app->bind(StudentRepositoryInterface::class, StudentRepository::class);
         $this->app->bind(StaffEmployeeRepositoryInterface::class, StaffEmployeeRepository::class);
         $this->app->bind(\App\Repositories\Interfaces\NotificationRepositoryInterface::class, \App\Repositories\NotificationRepository::class);
+        $this->app->bind(GlobalApproverRepositoryInterface::class, GlobalApproverRepository::class);
 
         // Notification services (singleton for better performance)
         $this->app->singleton(\App\Services\NotificationBuilder::class);

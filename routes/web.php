@@ -5,6 +5,7 @@ use App\Http\Controllers\Auth\OAuthController;
 use App\Http\Controllers\Auth\RegisterController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\FileController;
+use App\Http\Controllers\GlobalApproverController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\PermissionManagementController;
 use App\Http\Controllers\ProfileController;
@@ -86,6 +87,20 @@ Route::middleware(['auth', 'user.not.blocked'])->group(function () {
             ->name('settings.index');
         Route::post('/settings', [SystemSettingController::class, 'update'])
             ->name('settings.update');
+
+        // Global Approvers (under settings)
+        Route::prefix('settings/global-approvers')->name('settings.global-approvers.')->group(function () {
+            Route::get('/', [GlobalApproverController::class, 'index'])
+                ->name('index');
+            Route::post('/', [GlobalApproverController::class, 'store'])
+                ->name('store');
+            Route::put('/{global_approver}', [GlobalApproverController::class, 'update'])
+                ->name('update');
+            Route::delete('/{global_approver}', [GlobalApproverController::class, 'destroy'])
+                ->name('destroy');
+            Route::post('/{global_approver}/toggle-status', [GlobalApproverController::class, 'toggleStatus'])
+                ->name('toggle-status');
+        });
 
         // Notifications
         Route::prefix('notifications')->name('notifications.')->group(function () {

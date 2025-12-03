@@ -59,6 +59,7 @@ class RolePermissionSeeder extends Seeder
                 'sarpras.assign_specific_approver',
                 'system.monitoring',
                 'system.settings',
+                'global_approver.manage',
                 'user.manage',
                 'user.view',
                 'user.create',
@@ -166,6 +167,9 @@ class RolePermissionSeeder extends Seeder
         'system' => [
             'settings', 'monitoring',
         ],
+        'global_approver' => [
+            'manage',
+        ],
         'permission' => [
             'manage', 'view', 'create', 'edit', 'delete',
         ],
@@ -224,6 +228,8 @@ class RolePermissionSeeder extends Seeder
 
         'system.settings' => 'Mengelola konfigurasi sistem inti.',
         'system.monitoring' => 'Memantau status dan kesehatan sistem.',
+
+        'global_approver.manage' => 'Mengelola global approver untuk persetujuan peminjaman.',
 
         'permission.manage' => 'Mengakses halaman manajemen permission (list, create, edit, delete).',
         'permission.view' => 'Melihat daftar permission yang tersedia.',

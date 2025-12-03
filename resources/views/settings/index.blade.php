@@ -23,6 +23,20 @@
         </div>
     @endif
 
+    {{-- Settings Tabs --}}
+    <nav aria-label="Pengaturan" style="display:flex;gap:16px;margin-bottom:16px;border-bottom:1px solid var(--border-subtle);padding-bottom:4px;">
+        <a href="{{ route('settings.index') }}"
+           style="padding:6px 0;font-size:0.95rem;font-weight:600;text-decoration:none;{{ request()->routeIs('settings.index') ? 'color:var(--brand-primary);border-bottom:2px solid var(--brand-primary);' : 'color:var(--text-muted);' }}">
+            Umum
+        </a>
+        @can('global_approver.manage')
+        <a href="{{ route('settings.global-approvers.index') }}"
+           style="padding:6px 0;font-size:0.95rem;font-weight:600;text-decoration:none;{{ request()->routeIs('settings.global-approvers.*') ? 'color:var(--brand-primary);border-bottom:2px solid var(--brand-primary);' : 'color:var(--text-muted);' }}">
+            Global Approvers
+        </a>
+        @endcan
+    </nav>
+
     <form action="{{ route('settings.update') }}" method="POST" class="form-section">
         @csrf
 

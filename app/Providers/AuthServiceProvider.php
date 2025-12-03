@@ -2,9 +2,11 @@
 
 namespace App\Providers;
 
+use App\Models\GlobalApprover;
 use App\Models\Permission;
 use App\Models\Role;
 use App\Models\User;
+use App\Policies\GlobalApproverPolicy;
 use App\Policies\PermissionPolicy;
 use App\Policies\RolePolicy;
 use App\Policies\UserPolicy;
@@ -21,6 +23,7 @@ class AuthServiceProvider extends ServiceProvider
         Role::class => RolePolicy::class,
         Permission::class => PermissionPolicy::class,
         User::class => UserPolicy::class,
+        GlobalApprover::class => GlobalApproverPolicy::class,
         
         // Module Policies
         \Modules\SaranaManagement\Entities\Sarana::class => \Modules\SaranaManagement\Policies\SaranaPolicy::class,
