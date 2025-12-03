@@ -4,8 +4,13 @@ namespace Tests\Feature;
 
 use App\Models\User;
 use App\Services\NotificationBuilder;
+use App\Repositories\Interfaces\NotificationRepositoryInterface;
+use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Notification;
+use Illuminate\Support\Facades\Schema;
 use Tests\TestCase;
 
 class NotificationSystemTest extends TestCase
@@ -18,11 +23,64 @@ class NotificationSystemTest extends TestCase
     {
         parent::setUp();
 
-        $this->user = User::factory()->create([
+        // Menggunakan factory make agar tidak menyentuh database testing sqlite
+        $this->user = User::factory()->make([
             'status' => 'active',
             'profile_completed' => true,
             'profile_completed_at' => now(),
         ]);
+
+        // Set id manual agar relasi notifikasi menggunakan notifiable_id bekerja
+        $this->user->id = 1;
+
+        // Binding fake NotificationRepository agar endpoint notifikasi tidak menyentuh DB
+        $this->app->bind(NotificationRepositoryInterface::class, function () {
+            return new class implements NotificationRepositoryInterface {
+                public function getUserNotifications(User $user, array $filters = [], int $perPage = 15): LengthAwarePaginator
+                {
+                    return new LengthAwarePaginator([], 0, $perPage, 1);
+                }
+
+                public function getUnreadCount(User $user): int
+                {
+                    return 0;
+                }
+
+                public function getRecentUnread(User $user, int $limit = 5): Collection
+                {
+                    return collect();
+                }
+
+                public function getStatistics(User $user): array
+                {
+                    return [
+                        'total' => 0,
+                        'unread' => 0,
+                        'today' => 0,
+                        'this_week' => 0,
+                        'by_category' => [],
+                    ];
+                }
+
+                public function getCountByCategory(User $user): array
+                {
+                    return [];
+                }
+
+                public function getCategories(): array
+                {
+                    return [
+                        'all' => 'Semua',
+                        'peminjaman' => 'Peminjaman',
+                        'approval' => 'Approval',
+                        'system' => 'Sistem',
+                        'reminder' => 'Pengingat',
+                        'conflict' => 'Konflik',
+                        'other' => 'Lainnya',
+                    ];
+                }
+            };
+        });
     }
 
     /** @test */
@@ -92,7 +150,9 @@ class NotificationSystemTest extends TestCase
     /** @test */
     public function it_does_not_send_to_inactive_users()
     {
-        $inactiveUser = User::factory()->create(['status' => 'inactive']);
+        // Tidak menyentuh database, cukup make dan beri id berbeda
+        $inactiveUser = User::factory()->make(['status' => 'inactive']);
+        $inactiveUser->id = 2;
 
         Notification::fake();
 
@@ -107,6 +167,39 @@ class NotificationSystemTest extends TestCase
     /** @test */
     public function it_can_access_notifications_index_page()
     {
+        // Pastikan tabel roles dan model_has_roles ada di sqlite testing untuk kebutuhan sidebar
+        if (! Schema::hasTable('roles')) {
+            Schema::create('roles', function (Blueprint $table) {
+                $table->id();
+                $table->string('name');
+                $table->string('guard_name');
+                $table->timestamps();
+            });
+        }
+
+        if (! Schema::hasTable('model_has_roles')) {
+            Schema::create('model_has_roles', function (Blueprint $table) {
+                $table->unsignedBigInteger('role_id');
+                $table->unsignedBigInteger('model_id');
+                $table->string('model_type');
+            });
+        }
+
+        // Pastikan tabel menus ada karena sidebar memuat menu dari DB
+        if (! Schema::hasTable('menus')) {
+            Schema::create('menus', function (Blueprint $table) {
+                $table->id();
+                $table->string('label');
+                $table->string('route')->nullable();
+                $table->string('icon')->nullable();
+                $table->string('permission')->nullable();
+                $table->unsignedBigInteger('parent_id')->nullable();
+                $table->boolean('is_active')->default(true);
+                $table->integer('order')->default(0);
+                $table->timestamps();
+            });
+        }
+
         $response = $this->actingAs($this->user)->get(route('notifications.index'));
 
         $response->assertOk();
