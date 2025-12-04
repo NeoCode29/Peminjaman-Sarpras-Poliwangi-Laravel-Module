@@ -1,5 +1,6 @@
 {
     "SaranaManagement": true,
     "PrasaranaManagement": true,
-    "MarkingManagement": true
+    "MarkingManagement": true,
+    "PeminjamanManagement": true
 }

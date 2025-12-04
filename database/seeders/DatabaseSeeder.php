@@ -24,6 +24,7 @@ class DatabaseSeeder extends Seeder
             \Modules\SaranaManagement\Database\Seeders\SaranaManagementDatabaseSeeder::class,
             \Modules\PrasaranaManagement\Database\Seeders\PrasaranaManagementDatabaseSeeder::class,
             \Modules\MarkingManagement\Database\Seeders\MarkingManagementDatabaseSeeder::class,
+            \Modules\PeminjamanManagement\Database\Seeders\PeminjamanManagementDatabaseSeeder::class,
         ]);
     }
 }

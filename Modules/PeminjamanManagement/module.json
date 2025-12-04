@@ -1,0 +1,13 @@
+{
+    "name": "PeminjamanManagement",
+    "alias": "peminjamanmanagement",
+    "description": "",
+    "keywords": [],
+    "priority": 0,
+    "providers": [
+        "Modules\\PeminjamanManagement\\Providers\\PeminjamanManagementServiceProvider"
+    ],
+    "aliases": {},
+    "files": [],
+    "requires": []
+}
