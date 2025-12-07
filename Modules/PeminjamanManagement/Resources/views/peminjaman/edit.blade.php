@@ -42,7 +42,6 @@
             $formStartTime = old('start_time', optional($peminjaman->start_time)->format('H:i'));
             $formEndTime = old('end_time', optional($peminjaman->end_time)->format('H:i'));
             $formJumlahPeserta = old('jumlah_peserta', $peminjaman->jumlah_peserta);
-            $formJenisLokasi = old('jenis_lokasi', $peminjaman->prasarana_id ? 'prasarana' : 'custom');
             $formPrasaranaId = old('prasarana_id', $peminjaman->prasarana_id);
             $formLokasiCustom = old('lokasi_custom', $peminjaman->lokasi_custom);
             $formUkmId = old('ukm_id', $peminjaman->ukm_id);
@@ -181,36 +180,14 @@
         {{-- Section Prasarana --}}
         <div id="loan_prasarana_section">
             <x-form-group
-                title="Lokasi Kegiatan"
-                description="Perbarui lokasi kegiatan."
+                title="Prasarana yang Dipinjam"
+                description="Pilih prasarana kampus yang akan digunakan sebagai lokasi kegiatan."
                 icon="heroicon-o-map-pin"
             >
                 <x-form-section>
                     <div class="form-section__grid">
-                        <div class="form-field form-field--full">
-                            <div class="c-input">
-                                <label class="c-input__label">Jenis Lokasi <span style="color: var(--danger);">*</span></label>
-                                <div style="display: flex; gap: 16px; margin-top: 8px;">
-                                    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
-                                        <input type="radio" name="jenis_lokasi" value="prasarana" id="jenis_lokasi_prasarana"
-                                            {{ $formJenisLokasi === 'prasarana' ? 'checked' : '' }}
-                                            onchange="toggleLokasiInputs()"
-                                            style="width: 18px; height: 18px;">
-                                        <span>Prasarana Kampus</span>
-                                    </label>
-                                    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
-                                        <input type="radio" name="jenis_lokasi" value="custom" id="jenis_lokasi_custom"
-                                            {{ $formJenisLokasi === 'custom' ? 'checked' : '' }}
-                                            onchange="toggleLokasiInputs()"
-                                            style="width: 18px; height: 18px;">
-                                        <span>Lokasi Lainnya</span>
-                                    </label>
-                                </div>
-                            </div>
-                        </div>
-
                         {{-- Prasarana --}}
-                        <div class="form-field form-field--full" id="prasarana_container" style="{{ $formJenisLokasi === 'custom' ? 'display:none;' : '' }}">
+                        <div class="form-field form-field--full">
                             <x-input.select
                                 label="Prasarana"
                                 name="prasarana_id"
@@ -225,11 +202,23 @@
                                 @endforeach
                             </x-input.select>
                         </div>
+                    </div>
+                </x-form-section>
+            </x-form-group>
+        </div>
 
-                        {{-- Lokasi Custom --}}
-                        <div class="form-field form-field--full" id="lokasi_custom_container" style="{{ $formJenisLokasi === 'custom' ? '' : 'display:none;' }}">
+        {{-- Section Lokasi (untuk peminjaman tanpa prasarana) --}}
+        <div id="loan_lokasi_section" style="{{ $formLoanType === 'sarana' ? '' : 'display:none;' }}">
+            <x-form-group
+                title="Lokasi Kegiatan"
+                description="Isi lokasi kegiatan jika tidak menggunakan prasarana kampus."
+                icon="heroicon-o-map-pin"
+            >
+                <x-form-section>
+                    <div class="form-section__grid">
+                        <div class="form-field form-field--full">
                             <x-input.text
-                                label="Lokasi Custom"
+                                label="Lokasi Kegiatan"
                                 name="lokasi_custom"
                                 id="lokasi_custom"
                                 :value="$formLokasiCustom"
@@ -267,60 +256,49 @@
                                 </div>
                             </div>
 
-                            {{-- Tabel daftar sarana yang dipilih --}}
+                            {{-- Daftar sarana yang dipilih (list kolom, kartu row) --}}
                             <div class="c-input">
                                 <label class="c-input__label">Daftar Sarana Dipilih</label>
-                                <div style="overflow-x: auto;">
-                                    <table class="c-table" id="sarana-table" style="width: 100%; margin-top: 8px;">
-                                        <thead class="c-table__head">
-                                            <tr class="c-table__row">
-                                                <th class="c-table__cell c-table__cell--head" style="width: 40%;">Nama Sarana</th>
-                                                <th class="c-table__cell c-table__cell--head" style="width: 20%;">Kode</th>
-                                                <th class="c-table__cell c-table__cell--head" style="width: 20%;">Jumlah</th>
-                                                <th class="c-table__cell c-table__cell--head" style="width: 20%; text-align: center;">Aksi</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody class="c-table__body" id="sarana-table-body">
-                                            {{-- Existing items --}}
-                                            @php
-                                                $oldItems = old('sarana_items');
-                                                $items = !is_null($oldItems) ? $oldItems : $peminjaman->items->map(function ($item) {
-                                                    return [
-                                                        'sarana_id' => $item->sarana_id,
-                                                        'qty_requested' => $item->qty_requested,
-                                                    ];
-                                                })->toArray();
-                                            @endphp
+                                <div style="padding:4px 0;">
+                                    <div id="sarana-list" style="display:flex; flex-direction:column; gap:8px; min-height:40px;">
+                                        {{-- Existing items --}}
+                                        @php
+                                            $oldItems = old('sarana_items');
+                                            $items = !is_null($oldItems) ? $oldItems : $peminjaman->items->map(function ($item) {
+                                                return [
+                                                    'sarana_id' => $item->sarana_id,
+                                                    'qty_requested' => $item->qty_requested,
+                                                ];
+                                            })->toArray();
+                                        @endphp
 
-                                            @foreach($items as $index => $item)
-                                                @php
-                                                    $saranaItem = $sarana->firstWhere('id', $item['sarana_id']);
-                                                @endphp
-                                                @if($saranaItem)
-                                                    <tr class="c-table__row" data-sarana-id="{{ $item['sarana_id'] }}">
-                                                        <td class="c-table__cell">
-                                                            {{ $saranaItem->nama }}
-                                                            <input type="hidden" name="sarana_items[{{ $index }}][sarana_id]" value="{{ $item['sarana_id'] }}">
-                                                        </td>
-                                                        <td class="c-table__cell">{{ $saranaItem->kode_sarana }}</td>
-                                                        <td class="c-table__cell">
-                                                            <input type="number" name="sarana_items[{{ $index }}][qty_requested]" 
-                                                                value="{{ $item['qty_requested'] ?? 1 }}" 
-                                                                min="1" 
-                                                                class="c-input__element" 
-                                                                style="width: 80px; padding: 4px 8px;"
-                                                                onchange="updateSaranaIndex()">
-                                                        </td>
-                                                        <td class="c-table__cell" style="text-align: center;">
-                                                            <button type="button" class="c-button c-button--ghost c-button--danger" onclick="removeSaranaRow(this)" title="Hapus">
-                                                                <x-heroicon-o-trash style="width:16px;height:16px;" />
-                                                            </button>
-                                                        </td>
-                                                    </tr>
-                                                @endif
-                                            @endforeach
-                                        </tbody>
-                                    </table>
+                                        @foreach($items as $index => $item)
+                                            @php
+                                                $saranaItem = $sarana->firstWhere('id', $item['sarana_id']);
+                                            @endphp
+                                            @if($saranaItem)
+                                                <div class="sarana-item-card" data-sarana-id="{{ $item['sarana_id'] }}" style="border:1px solid var(--border-default); border-radius:8px; padding:8px 10px; background:var(--surface-card); display:flex; align-items:center; justify-content:space-between; gap:8px;">
+                                                    <div style="flex:1; display:flex; flex-direction:column; gap:2px; min-width:0;">
+                                                        <div style="font-weight:600; font-size:0.9rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{{ $saranaItem->nama }}</div>
+                                                        <div style="font-size:0.8rem; color:var(--text-muted);">{{ $saranaItem->kode_sarana }}</div>
+                                                    </div>
+                                                    <div style="display:flex; align-items:center; gap:6px; font-size:0.8rem;">
+                                                        <span>Jumlah:</span>
+                                                        <input type="number" name="sarana_items[{{ $index }}][qty_requested]" 
+                                                            value="{{ $item['qty_requested'] ?? 1 }}" 
+                                                            min="1" 
+                                                            class="c-input__element" 
+                                                            style="width:70px; padding:4px 8px; font-size:0.85rem;"
+                                                            onchange="updateSaranaIndex()">
+                                                        <button type="button" class="c-button c-button--ghost c-button--danger" onclick="removeSaranaRow(this)" title="Hapus" style="padding:4px 6px; font-size:0.8rem;">
+                                                            <x-heroicon-o-trash style="width:16px;height:16px;" />
+                                                        </button>
+                                                    </div>
+                                                    <input type="hidden" name="sarana_items[{{ $index }}][sarana_id]" value="{{ $item['sarana_id'] }}">
+                                                </div>
+                                            @endif
+                                        @endforeach
+                                    </div>
                                 </div>
                                 <p id="sarana-empty-message" class="c-input__helper" style="margin-top: 8px; {{ !empty($items) ? 'display:none;' : '' }}">
                                     Belum ada sarana dipilih. Pilih dari dropdown di atas.
@@ -408,6 +386,7 @@ function toggleLoanTypeSections() {
     var type = getLoanType();
     var prasaranaSection = document.getElementById('loan_prasarana_section');
     var saranaSection = document.getElementById('loan_sarana_section');
+    var lokasiSection = document.getElementById('loan_lokasi_section');
 
     if (!prasaranaSection || !saranaSection) return;
 
@@ -421,6 +400,14 @@ function toggleLoanTypeSections() {
         saranaSection.style.display = '';
     } else {
         saranaSection.style.display = 'none';
+    }
+
+    if (lokasiSection) {
+        if (type === 'sarana') {
+            lokasiSection.style.display = '';
+        } else {
+            lokasiSection.style.display = 'none';
+        }
     }
 }
 
@@ -439,71 +426,71 @@ function addSaranaFromSelect(selectEl) {
         return;
     }
 
-    // Cek apakah sudah ada di tabel
-    var tableBody = document.getElementById('sarana-table-body');
-    var existingRow = tableBody.querySelector('tr[data-sarana-id="' + saranaId + '"]');
-    if (existingRow) {
+    var list = document.getElementById('sarana-list');
+    var existingCard = list.querySelector('[data-sarana-id="' + saranaId + '"]');
+    if (existingCard) {
         alert('Sarana ini sudah ada di daftar!');
         selectEl.value = '';
         return;
     }
 
-    // Hitung index baru
-    var index = tableBody.querySelectorAll('tr').length;
+    var index = list.querySelectorAll('.sarana-item-card').length;
 
-    // Buat row baru
-    var tr = document.createElement('tr');
-    tr.className = 'c-table__row';
-    tr.setAttribute('data-sarana-id', saranaId);
-    tr.innerHTML = 
-        '<td class="c-table__cell">' +
-            nama +
-            '<input type="hidden" name="sarana_items[' + index + '][sarana_id]" value="' + saranaId + '">' +
-        '</td>' +
-        '<td class="c-table__cell">' + kode + '</td>' +
-        '<td class="c-table__cell">' +
-            '<input type="number" name="sarana_items[' + index + '][qty_requested]" value="1" min="1" class="c-input__element" style="width: 80px; padding: 4px 8px;" onchange="updateSaranaIndex()">' +
-        '</td>' +
-        '<td class="c-table__cell" style="text-align: center;">' +
-            '<button type="button" class="c-button c-button--ghost c-button--danger" onclick="removeSaranaRow(this)" title="Hapus">' +
+    var card = document.createElement('div');
+    card.className = 'sarana-item-card';
+    card.setAttribute('data-sarana-id', saranaId);
+    card.style.border = '1px solid var(--border-default)';
+    card.style.borderRadius = '8px';
+    card.style.padding = '8px 10px';
+    card.style.background = 'var(--surface-card)';
+    card.style.display = 'flex';
+    card.style.alignItems = 'center';
+    card.style.justifyContent = 'space-between';
+    card.style.gap = '8px';
+
+    card.innerHTML =
+        '<div style="flex:1; display:flex; flex-direction:column; gap:2px; min-width:0;">' +
+            '<div style="font-weight:600; font-size:0.9rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">' + nama + '</div>' +
+            '<div style="font-size:0.8rem; color:var(--text-muted);">' + kode + '</div>' +
+        '</div>' +
+        '<div style="display:flex; align-items:center; gap:6px; font-size:0.8rem;">' +
+            '<span>Jumlah:</span>' +
+            '<input type="number" name="sarana_items[' + index + '][qty_requested]" value="1" min="1" class="c-input__element" style="width:70px; padding:4px 8px; font-size:0.85rem;" onchange="updateSaranaIndex()">' +
+            '<button type="button" class="c-button c-button--ghost c-button--danger" onclick="removeSaranaRow(this)" title="Hapus" style="padding:4px 6px; font-size:0.8rem;">' +
                 '<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" style="width:16px;height:16px;"><path stroke-linecap="round" stroke-linejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" /></svg>' +
             '</button>' +
-        '</td>';
+        '</div>' +
+        '<input type="hidden" name="sarana_items[' + index + '][sarana_id]" value="' + saranaId + '">';
 
-    tableBody.appendChild(tr);
+    list.appendChild(card);
 
-    // Reset select
     selectEl.value = '';
 
-    // Hide empty message
     document.getElementById('sarana-empty-message').style.display = 'none';
 
-    // Update index
     updateSaranaIndex();
 }
 
 function removeSaranaRow(button) {
-    var row = button.closest('tr');
-    if (!row) return;
+    var card = button.closest('.sarana-item-card');
+    if (!card) return;
 
-    row.remove();
+    card.remove();
 
-    // Update index
     updateSaranaIndex();
 
-    // Show empty message if no rows
-    var tableBody = document.getElementById('sarana-table-body');
-    if (tableBody.querySelectorAll('tr').length === 0) {
+    var list = document.getElementById('sarana-list');
+    if (list.querySelectorAll('.sarana-item-card').length === 0) {
         document.getElementById('sarana-empty-message').style.display = '';
     }
 }
 
 function updateSaranaIndex() {
-    var tableBody = document.getElementById('sarana-table-body');
-    var rows = tableBody.querySelectorAll('tr');
-    rows.forEach(function(row, index) {
-        var hiddenInput = row.querySelector('input[type="hidden"]');
-        var qtyInput = row.querySelector('input[type="number"]');
+    var list = document.getElementById('sarana-list');
+    var cards = list.querySelectorAll('.sarana-item-card');
+    cards.forEach(function(card, index) {
+        var hiddenInput = card.querySelector('input[type="hidden"]');
+        var qtyInput = card.querySelector('input[type="number"]');
         if (hiddenInput) {
             hiddenInput.name = 'sarana_items[' + index + '][sarana_id]';
         }

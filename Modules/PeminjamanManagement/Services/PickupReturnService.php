@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\Storage;
 use Modules\PeminjamanManagement\Entities\Peminjaman;
 use Modules\PeminjamanManagement\Entities\PeminjamanItem;
 use Modules\PeminjamanManagement\Entities\PeminjamanItemUnit;
+use Modules\PeminjamanManagement\Events\PeminjamanStatusChanged;
 use Modules\SaranaManagement\Entities\SaranaUnit;
 
 class PickupReturnService
@@ -24,6 +25,7 @@ class PickupReturnService
         array $unitAssignments = []
     ): Peminjaman {
         return DB::transaction(function () use ($peminjaman, $validatedBy, $fotoFile, $unitAssignments) {
+            $oldStatus = $peminjaman->status;
             // Upload foto if provided
             $fotoPath = null;
             if ($fotoFile) {
@@ -48,7 +50,13 @@ class PickupReturnService
                 'validated_by' => $validatedBy,
             ]);
 
-            return $peminjaman->fresh();
+            $peminjaman = $peminjaman->fresh();
+
+            if ($oldStatus !== $peminjaman->status) {
+                PeminjamanStatusChanged::dispatch($peminjaman, $oldStatus, $peminjaman->status);
+            }
+
+            return $peminjaman;
         });
     }
 
@@ -61,6 +69,7 @@ class PickupReturnService
         ?UploadedFile $fotoFile = null
     ): Peminjaman {
         return DB::transaction(function () use ($peminjaman, $validatedBy, $fotoFile) {
+            $oldStatus = $peminjaman->status;
             // Upload foto if provided
             $fotoPath = null;
             if ($fotoFile) {
@@ -83,7 +92,13 @@ class PickupReturnService
                 'validated_by' => $validatedBy,
             ]);
 
-            return $peminjaman->fresh();
+            $peminjaman = $peminjaman->fresh();
+
+            if ($oldStatus !== $peminjaman->status) {
+                PeminjamanStatusChanged::dispatch($peminjaman, $oldStatus, $peminjaman->status);
+            }
+
+            return $peminjaman;
         });
     }
 

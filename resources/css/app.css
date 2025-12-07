@@ -1150,15 +1150,21 @@ body {
 
 .c-card--notification {
     padding: 12px 16px;
+    border-left-width: 3px;
+    border-left-style: solid;
+    border-left-color: transparent;
     box-shadow: 0 4px 14px rgba(15, 23, 42, 0.06);
+    transition: box-shadow 0.18s ease, transform 0.18s ease, background-color 0.18s ease, border-color 0.18s ease;
 }
 
 .c-card--notification:hover {
     box-shadow: 0 8px 20px rgba(15, 23, 42, 0.1);
+    transform: translateY(-1px);
 }
 
 .c-card--notification-unread {
     border-color: var(--color-blue-100);
+    border-left-color: var(--brand-accent);
     background-color: rgba(219, 234, 254, 0.4);
 }
 
@@ -1217,6 +1223,8 @@ body {
 .c-card__description--notification {
     font-size: 0.88rem;
     color: var(--text-muted);
+    line-height: 1.6;
+    word-break: break-word;
 }
 
 .c-card__notification-meta {
@@ -1316,6 +1324,18 @@ body {
     .c-card__notification-header {
         align-items: flex-start;
         flex-direction: column;
+    }
+
+    .c-card__notification-actions {
+        margin-top: 8px;
+        justify-content: flex-start;
+        flex-wrap: wrap;
+        gap: 6px;
+    }
+
+    .c-card__notification-actions .c-button {
+        width: 100%;
+        justify-content: center;
     }
 }
 
@@ -2214,6 +2234,44 @@ body.app-shell--sidebar-open {
 
 .page-content--data {
     gap: 32px;
+}
+
+/* Detail Peminjaman Layout (Sisi layout) */
+.page-content--detail .detail-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 2fr) minmax(0, 1.4fr);
+    gap: 16px;
+    align-items: flex-start;
+}
+
+.page-content--detail .detail-main,
+.page-content--detail .detail-sidebar {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+/* Tablet: perkecil gap dan beri proporsi kolom lebih seimbang */
+@media (max-width: 1024px) {
+    .page-content--detail .detail-layout {
+        grid-template-columns: minmax(0, 1.7fr) minmax(0, 1.3fr);
+        gap: 12px;
+    }
+}
+
+/* Mobile / small tablet: jadikan satu kolom (stack) */
+@media (max-width: 768px) {
+    .page-content--detail .detail-layout {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .page-content--detail .detail-sidebar {
+        order: 2;
+    }
+
+    .page-content--detail .detail-main {
+        order: 1;
+    }
 }
 
 .page-section {

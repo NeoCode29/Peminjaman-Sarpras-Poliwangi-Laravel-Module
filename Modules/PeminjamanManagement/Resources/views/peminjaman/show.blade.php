@@ -52,19 +52,16 @@
         };
     @endphp
 
-    <div class="detail-layout" style="display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1.4fr);gap:16px;align-items:flex-start;">
+    <div class="detail-layout">
         {{-- Kolom Kiri: Info Peminjaman & Sarana --}}
-        <div class="detail-main" style="display:flex;flex-direction:column;gap:16px;">
+        <div class="detail-main">
             {{-- Info Kegiatan --}}
-            <section class="card" aria-labelledby="section-info-kegiatan" style="background:var(--surface-card);border-radius:12px;border:1px solid var(--border-subtle);padding:16px;">
-                <header style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;gap:8px;">
-                    <div style="display:flex;align-items:center;gap:8px;">
-                        <x-heroicon-o-calendar style="width:20px;height:20px;color:var(--brand-primary);" />
-                        <div>
-                            <h2 id="section-info-kegiatan" style="font-size:1rem;font-weight:600;margin:0;">Informasi Kegiatan</h2>
-                            <p style="margin:0;color:var(--text-muted);font-size:0.85rem;">Detail dasar dari pengajuan peminjaman.</p>
-                        </div>
-                    </div>
+            <x-detail-section
+                title="Informasi Kegiatan"
+                description="Detail dasar dari pengajuan peminjaman."
+                icon="heroicon-o-calendar"
+            >
+                <x-slot:headerActions>
                     <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;">
                         <x-badge :variant="$overallVariant" size="sm">
                             Status: {{ $peminjaman->status_label }}
@@ -75,97 +72,78 @@
                             </x-badge>
                         @endif
                     </div>
-                </header>
+                </x-slot:headerActions>
 
-                <dl style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;font-size:0.9rem;">
-                    <div>
-                        <dt style="color:var(--text-muted);">Nama Acara</dt>
-                        <dd style="margin:0;font-weight:600;">{{ $peminjaman->event_name }}</dd>
-                    </div>
-                    <div>
-                        <dt style="color:var(--text-muted);">Peminjam</dt>
-                        <dd style="margin:0;">
-                            {{ $peminjaman->user->name ?? '-' }}
-                            @if($peminjaman->ukm)
-                                <br><small style="color:var(--text-muted);">UKM: {{ $peminjaman->ukm->nama }}</small>
-                            @endif
-                        </dd>
-                    </div>
-                    <div>
-                        <dt style="color:var(--text-muted);">Tanggal</dt>
-                        <dd style="margin:0;">
-                            {{ $peminjaman->start_date->format('d/m/Y') }} s/d {{ $peminjaman->end_date->format('d/m/Y') }}
-                            <br>
-                            <small style="color:var(--text-muted);">Durasi: {{ $peminjaman->getDurationInDays() }} hari</small>
-                        </dd>
-                    </div>
-                    <div>
-                        <dt style="color:var(--text-muted);">Waktu (Opsional)</dt>
-                        <dd style="margin:0;">
-                            @if($peminjaman->start_time && $peminjaman->end_time)
-                                {{ $peminjaman->start_time->format('H:i') }} - {{ $peminjaman->end_time->format('H:i') }}
-                            @else
-                                <span style="color:var(--text-muted);">Tidak diatur</span>
-                            @endif
-                        </dd>
-                    </div>
-                    <div>
-                        <dt style="color:var(--text-muted);">Jumlah Peserta</dt>
-                        <dd style="margin:0;">
-                            @if($peminjaman->jumlah_peserta)
-                                {{ number_format($peminjaman->jumlah_peserta) }} orang
-                            @else
-                                <span style="color:var(--text-muted);">Tidak diisi</span>
-                            @endif
-                        </dd>
-                    </div>
-                    <div>
-                        <dt style="color:var(--text-muted);">Dibuat Pada</dt>
-                        <dd style="margin:0;">
-                            {{ $peminjaman->created_at->format('d/m/Y H:i') }}
-                        </dd>
-                    </div>
-                </dl>
+                <x-detail-list :columns="3" variant="bordered">
+                    <x-detail-item label="Nama Acara">
+                        {{ $peminjaman->event_name }}
+                    </x-detail-item>
+
+                    <x-detail-item label="Peminjam">
+                        {{ $peminjaman->user->name ?? '-' }}
+                        @if($peminjaman->ukm)
+                            <br><small style="color:var(--text-muted);">UKM: {{ $peminjaman->ukm->nama }}</small>
+                        @endif
+                    </x-detail-item>
+
+                    <x-detail-item label="Tanggal">
+                        {{ $peminjaman->start_date->format('d/m/Y') }} s/d {{ $peminjaman->end_date->format('d/m/Y') }}
+                        <br>
+                        <small style="color:var(--text-muted);">Durasi: {{ $peminjaman->getDurationInDays() }} hari</small>
+                    </x-detail-item>
+
+                    <x-detail-item label="Waktu (Opsional)">
+                        @if($peminjaman->start_time && $peminjaman->end_time)
+                            {{ $peminjaman->start_time->format('H:i') }} - {{ $peminjaman->end_time->format('H:i') }}
+                        @else
+                            <span style="color:var(--text-muted);">Tidak diatur</span>
+                        @endif
+                    </x-detail-item>
+
+                    <x-detail-item label="Jumlah Peserta">
+                        @if($peminjaman->jumlah_peserta)
+                            {{ number_format($peminjaman->jumlah_peserta) }} orang
+                        @else
+                            <span style="color:var(--text-muted);">Tidak diisi</span>
+                        @endif
+                    </x-detail-item>
+
+                    <x-detail-item label="Dibuat Pada">
+                        {{ $peminjaman->created_at->format('d/m/Y H:i') }}
+                    </x-detail-item>
+                </x-detail-list>
 
                 @if($peminjaman->surat_url)
-                    <div style="margin-top:12px;">
+                    <x-slot:footer>
                         <a href="{{ $peminjaman->surat_url }}" target="_blank" style="font-size:0.9rem;text-decoration:underline;">
                             Lihat Surat Pengajuan
                         </a>
-                    </div>
+                    </x-slot:footer>
                 @endif
-            </section>
+            </x-detail-section>
 
             {{-- Lokasi & Sarana --}}
-            <section class="card" style="background:var(--surface-card);border-radius:12px;border:1px solid var(--border-subtle);padding:16px;">
-                <header style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">
-                    <x-heroicon-o-map-pin style="width:20px;height:20px;color:var(--brand-primary);" />
-                    <div>
-                        <h2 style="font-size:1rem;font-weight:600;margin:0;">Lokasi & Sarana</h2>
-                        <p style="margin:0;color:var(--text-muted);font-size:0.85rem;">Detail lokasi kegiatan dan sarana yang dipinjam.</p>
-                    </div>
-                </header>
-
-                <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;font-size:0.9rem;">
-                    <div>
-                        <h3 style="font-size:0.9rem;font-weight:600;margin:0 0 4px;">Lokasi Kegiatan</h3>
-                        <p style="margin:0;">
-                            @if($peminjaman->prasarana)
-                                {{ $peminjaman->prasarana->name }}
-                                @if($peminjaman->prasarana->lokasi)
-                                    <br><small style="color:var(--text-muted);">{{ $peminjaman->prasarana->lokasi }}</small>
-                                @endif
-                            @elseif($peminjaman->lokasi_custom)
-                                {{ $peminjaman->lokasi_custom }}
-                            @else
-                                <span style="color:var(--text-muted);">Tidak ditentukan</span>
+            <x-detail-section
+                title="Lokasi & Sarana"
+                description="Detail lokasi kegiatan dan sarana yang dipinjam."
+                icon="heroicon-o-map-pin"
+            >
+                <x-detail-list :columns="2" variant="bordered">
+                    <x-detail-item label="Lokasi Kegiatan">
+                        @if($peminjaman->prasarana)
+                            {{ $peminjaman->prasarana->name }}
+                            @if($peminjaman->prasarana->lokasi)
+                                <br><small style="color:var(--text-muted);">{{ $peminjaman->prasarana->lokasi }}</small>
                             @endif
-                        </p>
-                    </div>
+                        @elseif($peminjaman->lokasi_custom)
+                            {{ $peminjaman->lokasi_custom }}
+                        @else
+                            <span style="color:var(--text-muted);">Tidak ditentukan</span>
+                        @endif
+                    </x-detail-item>
 
-                    <div>
-                        <h3 style="font-size:0.9rem;font-weight:600;margin:0 0 4px;">Informasi Tambahan</h3>
-                        <p style="margin:0;color:var(--text-muted);font-size:0.85rem;">
+                    <x-detail-item label="Informasi Tambahan">
+                        <span style="color:var(--text-muted);font-size:0.85rem;">
                             @if($peminjaman->approvedBy)
                                 Disetujui oleh {{ $peminjaman->approvedBy->name }} pada {{ optional($peminjaman->approved_at)->format('d/m/Y H:i') }}<br>
                             @endif
@@ -178,9 +156,9 @@
                             @if($peminjaman->cancelledBy)
                                 Dibatalkan oleh {{ $peminjaman->cancelledBy->name }} pada {{ optional($peminjaman->cancelled_at)->format('d/m/Y H:i') }}
                             @endif
-                        </p>
-                    </div>
-                </div>
+                        </span>
+                    </x-detail-item>
+                </x-detail-list>
 
                 {{-- Tabel Sarana --}}
                 <div style="margin-top:16px;">
@@ -225,16 +203,16 @@
                         </table>
                     </div>
                 </div>
-            </section>
+            </x-detail-section>
         </div>
 
         {{-- Kolom Kanan: Workflow & Aksi --}}
-        <div class="detail-sidebar" style="display:flex;flex-direction:column;gap:16px;">
+        <div class="detail-sidebar">
             {{-- Aksi Cepat --}}
-            <section class="card" style="background:var(--surface-card);border-radius:12px;border:1px solid var(--border-subtle);padding:16px;">
-                <h2 style="font-size:0.95rem;font-weight:600;margin:0 0 8px;">Tindakan</h2>
-                <p style="margin:0 0 12px;color:var(--text-muted);font-size:0.85rem;">Pilih tindakan yang tersedia sesuai peran dan status peminjaman.</p>
-
+            <x-detail-section
+                title="Tindakan"
+                description="Pilih tindakan yang tersedia sesuai peran dan status peminjaman."
+            >
                 <div style="display:flex;flex-direction:column;gap:8px;">
                     @can('update', $peminjaman)
                         <a href="{{ route('peminjaman.edit', $peminjaman) }}" style="text-decoration:none;">
@@ -286,13 +264,13 @@
                         @endif
                     @endcan
                 </div>
-            </section>
+            </x-detail-section>
 
             {{-- Workflow Approval --}}
-            <section class="card" style="background:var(--surface-card);border-radius:12px;border:1px solid var(--border-subtle);padding:16px;">
-                <h2 style="font-size:0.95rem;font-weight:600;margin:0 0 8px;">Workflow Persetujuan</h2>
-                <p style="margin:0 0 12px;color:var(--text-muted);font-size:0.85rem;">Rincian langkah persetujuan global dan spesifik.</p>
-
+            <x-detail-section
+                title="Workflow Persetujuan"
+                description="Rincian langkah persetujuan global dan spesifik."
+            >
                 {{-- Global --}}
                 <div style="margin-bottom:12px;">
                     <h3 style="font-size:0.9rem;font-weight:600;margin:0 0 4px;">Approval Global</h3>
@@ -371,15 +349,14 @@
                         </ul>
                     </div>
                 @endif
-            </section>
+            </x-detail-section>
 
             {{-- Konflik Group --}}
             @if(($konflikMembers ?? collect())->isNotEmpty())
-                <section class="card" style="background:var(--warning-subtle);border-radius:12px;border:1px solid var(--warning);padding:16px;">
-                    <h2 style="font-size:0.95rem;font-weight:600;margin:0 0 4px;">Konflik Jadwal</h2>
-                    <p style="margin:0 0 8px;color:var(--text-muted);font-size:0.85rem;">
-                        Peminjaman ini berada dalam grup konflik dengan pengajuan lain berikut:
-                    </p>
+                <x-detail-section
+                    title="Konflik Jadwal"
+                    description="Peminjaman ini berada dalam grup konflik dengan pengajuan lain."
+                >
                     <ul style="list-style:none;padding:0;margin:0;font-size:0.85rem;">
                         @foreach($konflikMembers as $member)
                             <li>
@@ -389,7 +366,7 @@
                             </li>
                         @endforeach
                     </ul>
-                </section>
+                </x-detail-section>
             @endif
         </div>
     </div>

@@ -4,6 +4,7 @@ namespace Modules\PeminjamanManagement\Services;
 
 use App\Models\GlobalApprover;
 use App\Models\SystemSetting;
+use App\Services\NotificationBuilder;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\DatabaseManager;
 use Illuminate\Http\UploadedFile;
@@ -16,6 +17,7 @@ use Modules\PeminjamanManagement\Entities\Peminjaman;
 use Modules\PeminjamanManagement\Entities\PeminjamanApprovalStatus;
 use Modules\PeminjamanManagement\Entities\PeminjamanApprovalWorkflow;
 use Modules\PeminjamanManagement\Entities\PeminjamanItem;
+use Modules\PeminjamanManagement\Events\PeminjamanStatusChanged;
 use Modules\PeminjamanManagement\Repositories\Interfaces\PeminjamanRepositoryInterface;
 use Modules\PrasaranaManagement\Entities\PrasaranaApprover;
 use Modules\SaranaManagement\Entities\SaranaApprover;
@@ -123,6 +125,8 @@ class PeminjamanService
                 'user_id' => $peminjaman->user_id,
             ]);
 
+            PeminjamanStatusChanged::dispatch($peminjaman, null, $peminjaman->status);
+
             return $peminjaman->fresh(['items', 'approvalStatus', 'approvalWorkflow']);
         });
     }
@@ -167,8 +171,48 @@ class PeminjamanService
                 'peminjaman_id' => $peminjaman->id,
             ]);
 
+            // Kirim notifikasi ke approver terkait jika peminjaman masih pending
+            if ($peminjaman->status === Peminjaman::STATUS_PENDING) {
+                $this->notifyApproversPeminjamanUpdated($peminjaman);
+            }
+
             return $peminjaman->fresh(['items', 'approvalStatus', 'approvalWorkflow']);
         });
+    }
+
+    /**
+     * Send notification to all related approvers when a pending peminjaman is updated.
+     */
+    protected function notifyApproversPeminjamanUpdated(Peminjaman $peminjaman): void
+    {
+        $workflows = $peminjaman->approvalWorkflow()
+            ->with('approver')
+            ->pending()
+            ->get();
+
+        $approvers = $workflows
+            ->pluck('approver')
+            ->filter()
+            ->unique('id')
+            ->values();
+
+        if ($approvers->isEmpty()) {
+            return;
+        }
+
+        NotificationBuilder::make()
+            ->title('Pengajuan Peminjaman Diperbarui')
+            ->message('Pengajuan peminjaman "' . $peminjaman->event_name . '" telah diperbarui dan menunggu persetujuan Anda.')
+            ->action('Lihat Detail', route('peminjaman.show', $peminjaman))
+            ->icon('document-plus')
+            ->color('info')
+            ->priority('normal')
+            ->category('approval')
+            ->metadata([
+                'peminjaman_id' => $peminjaman->id,
+                'status' => $peminjaman->status,
+            ])
+            ->sendToUsers($approvers);
     }
 
     /**
@@ -177,11 +221,17 @@ class PeminjamanService
     public function cancelPeminjaman(Peminjaman $peminjaman, int $cancelledBy, ?string $reason = null): Peminjaman
     {
         return $this->database->transaction(function () use ($peminjaman, $cancelledBy, $reason) {
+            $oldStatus = $peminjaman->status;
+
             $peminjaman = $this->peminjamanRepository->updateStatus($peminjaman, Peminjaman::STATUS_CANCELLED, [
                 'cancelled_by' => $cancelledBy,
                 'cancelled_reason' => $reason,
                 'cancelled_at' => now(),
             ]);
+
+            if ($oldStatus !== $peminjaman->status) {
+                PeminjamanStatusChanged::dispatch($peminjaman, $oldStatus, $peminjaman->status);
+            }
 
             Log::info('Peminjaman cancelled', [
                 'peminjaman_id' => $peminjaman->id,

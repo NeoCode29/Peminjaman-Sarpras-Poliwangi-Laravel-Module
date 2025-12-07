@@ -11,6 +11,7 @@ use Modules\PeminjamanManagement\Entities\Peminjaman;
 use Modules\PeminjamanManagement\Entities\PeminjamanApprovalStatus;
 use Modules\PeminjamanManagement\Entities\PeminjamanApprovalWorkflow;
 use Modules\PeminjamanManagement\Entities\PeminjamanItem;
+use Modules\PeminjamanManagement\Events\PeminjamanStatusChanged;
 use Modules\SaranaManagement\Entities\Sarana;
 
 class PeminjamanApprovalService
@@ -66,6 +67,7 @@ class PeminjamanApprovalService
     public function recalculateOverallStatus(int $peminjamanId): void
     {
         $peminjaman = Peminjaman::findOrFail($peminjamanId);
+        $oldStatus = $peminjaman->status;
 
         /** @var PeminjamanApprovalStatus $status */
         $status = PeminjamanApprovalStatus::firstOrCreate([
@@ -80,9 +82,21 @@ class PeminjamanApprovalService
         // Sync peminjaman.status when finalized
         if ($status->overall_status === PeminjamanApprovalStatus::OVERALL_APPROVED) {
             $peminjaman->update(['status' => Peminjaman::STATUS_APPROVED]);
+            $peminjaman->refresh();
+
+            if ($oldStatus !== $peminjaman->status) {
+                PeminjamanStatusChanged::dispatch($peminjaman, $oldStatus, $peminjaman->status);
+            }
+
             $this->resolveKonflikGroup($peminjaman, true);
         } elseif ($status->overall_status === PeminjamanApprovalStatus::OVERALL_REJECTED) {
             $peminjaman->update(['status' => Peminjaman::STATUS_REJECTED]);
+            $peminjaman->refresh();
+
+            if ($oldStatus !== $peminjaman->status) {
+                PeminjamanStatusChanged::dispatch($peminjaman, $oldStatus, $peminjaman->status);
+            }
+
             $this->resolveKonflikGroup($peminjaman, false);
         }
     }

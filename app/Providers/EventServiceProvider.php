@@ -9,6 +9,7 @@ use App\Events\SaranaAuditLogged;
 use App\Events\PrasaranaAuditLogged;
 use App\Events\UserAuditLogged;
 use App\Listeners\ClearPermissionCache;
+use App\Listeners\SendPeminjamanStatusNotification;
 use App\Listeners\StoreKategoriSaranaAudit;
 use App\Listeners\StorePermissionAudit;
 use App\Listeners\StoreRoleAudit;
@@ -18,6 +19,7 @@ use App\Listeners\StoreUserAudit;
 use Illuminate\Foundation\Support\Providers\EventServiceProvider as ServiceProvider;
 use Modules\MarkingManagement\Events\MarkingAuditLogged;
 use Modules\MarkingManagement\Listeners\StoreMarkingAudit;
+use Modules\PeminjamanManagement\Events\PeminjamanStatusChanged;
 
 class EventServiceProvider extends ServiceProvider
 {
@@ -42,6 +44,9 @@ class EventServiceProvider extends ServiceProvider
         ],
         MarkingAuditLogged::class => [
             StoreMarkingAudit::class,
+        ],
+        PeminjamanStatusChanged::class => [
+            SendPeminjamanStatusNotification::class,
         ],
     ];
 
