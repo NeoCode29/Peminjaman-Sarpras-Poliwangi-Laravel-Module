@@ -44,7 +44,9 @@ class SlotConflictService
                     $item['qty_requested'],
                     $request->start_date,
                     $request->end_date,
-                    $excludePeminjamanId
+                    $excludePeminjamanId,
+                    $request->start_time,
+                    $request->end_time
                 );
 
                 if ($conflict) {
@@ -67,15 +69,14 @@ class SlotConflictService
         ?string $endTime,
         ?int $excludePeminjamanId = null
     ): ?string {
+        $startDateTime = $this->getStartDateTime($startDate, $startTime);
+        $endDateTime = $this->getEndDateTime($endDate, $endTime);
+
         $query = Peminjaman::where('prasarana_id', $prasaranaId)
             ->active()
-            ->where(function ($q) use ($startDate, $endDate) {
-                $q->whereBetween('start_date', [$startDate, $endDate])
-                    ->orWhereBetween('end_date', [$startDate, $endDate])
-                    ->orWhere(function ($q2) use ($startDate, $endDate) {
-                        $q2->where('start_date', '<=', $startDate)
-                            ->where('end_date', '>=', $endDate);
-                    });
+            ->where(function ($q) use ($startDateTime, $endDateTime) {
+                $q->whereRaw('CONCAT(start_date, " ", COALESCE(start_time, "00:00:00")) <= ?', [$endDateTime])
+                    ->whereRaw('CONCAT(end_date, " ", COALESCE(end_time, "23:59:59")) >= ?', [$startDateTime]);
             });
 
         if ($excludePeminjamanId) {
@@ -104,7 +105,9 @@ class SlotConflictService
         int $qtyRequested,
         string $startDate,
         string $endDate,
-        ?int $excludePeminjamanId = null
+        ?int $excludePeminjamanId = null,
+        ?string $startTime = null,
+        ?string $endTime = null
     ): ?string {
         $sarana = Sarana::find($saranaId);
 
@@ -119,6 +122,8 @@ class SlotConflictService
                 $qtyRequested,
                 $startDate,
                 $endDate,
+                $startTime,
+                $endTime,
                 $excludePeminjamanId
             );
         }
@@ -129,6 +134,8 @@ class SlotConflictService
             $qtyRequested,
             $startDate,
             $endDate,
+            $startTime,
+            $endTime,
             $excludePeminjamanId
         );
     }
@@ -141,22 +148,23 @@ class SlotConflictService
         int $qtyRequested,
         string $startDate,
         string $endDate,
+        ?string $startTime,
+        ?string $endTime,
         ?int $excludePeminjamanId = null
     ): ?string {
+        $startDateTime = $this->getStartDateTime($startDate, $startTime);
+        $endDateTime = $this->getEndDateTime($endDate, $endTime);
+
         // Get units that are already assigned in the date range
         $assignedUnitIds = PeminjamanItemUnit::active()
             ->whereHas('peminjamanItem', function ($q) use ($sarana) {
                 $q->where('sarana_id', $sarana->id);
             })
-            ->whereHas('peminjaman', function ($q) use ($startDate, $endDate, $excludePeminjamanId) {
+            ->whereHas('peminjaman', function ($q) use ($startDateTime, $endDateTime, $excludePeminjamanId) {
                 $q->active()
-                    ->where(function ($q2) use ($startDate, $endDate) {
-                        $q2->whereBetween('start_date', [$startDate, $endDate])
-                            ->orWhereBetween('end_date', [$startDate, $endDate])
-                            ->orWhere(function ($q3) use ($startDate, $endDate) {
-                                $q3->where('start_date', '<=', $startDate)
-                                    ->where('end_date', '>=', $endDate);
-                            });
+                    ->where(function ($q2) use ($startDateTime, $endDateTime) {
+                        $q2->whereRaw('CONCAT(start_date, " ", COALESCE(start_time, "00:00:00")) <= ?', [$endDateTime])
+                            ->whereRaw('CONCAT(end_date, " ", COALESCE(end_time, "23:59:59")) >= ?', [$startDateTime]);
                     });
 
                 if ($excludePeminjamanId) {
@@ -185,19 +193,20 @@ class SlotConflictService
         int $qtyRequested,
         string $startDate,
         string $endDate,
+        ?string $startTime,
+        ?string $endTime,
         ?int $excludePeminjamanId = null
     ): ?string {
+        $startDateTime = $this->getStartDateTime($startDate, $startTime);
+        $endDateTime = $this->getEndDateTime($endDate, $endTime);
+
         // Get total requested quantity in the date range
         $query = PeminjamanItem::where('sarana_id', $sarana->id)
-            ->whereHas('peminjaman', function ($q) use ($startDate, $endDate, $excludePeminjamanId) {
+            ->whereHas('peminjaman', function ($q) use ($startDateTime, $endDateTime, $excludePeminjamanId) {
                 $q->active()
-                    ->where(function ($q2) use ($startDate, $endDate) {
-                        $q2->whereBetween('start_date', [$startDate, $endDate])
-                            ->orWhereBetween('end_date', [$startDate, $endDate])
-                            ->orWhere(function ($q3) use ($startDate, $endDate) {
-                                $q3->where('start_date', '<=', $startDate)
-                                    ->where('end_date', '>=', $endDate);
-                            });
+                    ->where(function ($q2) use ($startDateTime, $endDateTime) {
+                        $q2->whereRaw('CONCAT(start_date, " ", COALESCE(start_time, "00:00:00")) <= ?', [$endDateTime])
+                            ->whereRaw('CONCAT(end_date, " ", COALESCE(end_time, "23:59:59")) >= ?', [$startDateTime]);
                     });
 
                 if ($excludePeminjamanId) {
@@ -222,12 +231,35 @@ class SlotConflictService
     {
         $conflicts = collect();
 
+        // Normalize start/end datetime from casted attributes (Carbon or string)
+        $startDate = $peminjaman->start_date instanceof \Carbon\Carbon
+            ? $peminjaman->start_date->toDateString()
+            : (string) $peminjaman->start_date;
+
+        $endDate = $peminjaman->end_date instanceof \Carbon\Carbon
+            ? $peminjaman->end_date->toDateString()
+            : (string) $peminjaman->end_date;
+
+        $startTime = $peminjaman->start_time instanceof \Carbon\Carbon
+            ? $peminjaman->start_time->format('H:i:s')
+            : ($peminjaman->start_time ? (string) $peminjaman->start_time : null);
+
+        $endTime = $peminjaman->end_time instanceof \Carbon\Carbon
+            ? $peminjaman->end_time->format('H:i:s')
+            : ($peminjaman->end_time ? (string) $peminjaman->end_time : null);
+
+        $startDateTime = $this->getStartDateTime($startDate, $startTime);
+        $endDateTime = $this->getEndDateTime($endDate, $endTime);
+
         // Check prasarana conflicts
         if ($peminjaman->prasarana_id) {
             $prasaranaConflicts = Peminjaman::where('prasarana_id', $peminjaman->prasarana_id)
                 ->where('id', '!=', $peminjaman->id)
-                ->pending()
-                ->dateRange($peminjaman->start_date, $peminjaman->end_date)
+                ->active()
+                ->where(function ($q) use ($startDateTime, $endDateTime) {
+                    $q->whereRaw('CONCAT(start_date, " ", COALESCE(start_time, "00:00:00")) <= ?', [$endDateTime])
+                        ->whereRaw('CONCAT(end_date, " ", COALESCE(end_time, "23:59:59")) >= ?', [$startDateTime]);
+                })
                 ->get();
 
             $conflicts = $conflicts->merge($prasaranaConflicts);
@@ -237,8 +269,11 @@ class SlotConflictService
         $saranaIds = $peminjaman->items()->pluck('sarana_id');
         if ($saranaIds->isNotEmpty()) {
             $saranaConflicts = Peminjaman::where('id', '!=', $peminjaman->id)
-                ->pending()
-                ->dateRange($peminjaman->start_date, $peminjaman->end_date)
+                ->active()
+                ->where(function ($q) use ($startDateTime, $endDateTime) {
+                    $q->whereRaw('CONCAT(start_date, " ", COALESCE(start_time, "00:00:00")) <= ?', [$endDateTime])
+                        ->whereRaw('CONCAT(end_date, " ", COALESCE(end_time, "23:59:59")) >= ?', [$startDateTime]);
+                })
                 ->whereHas('items', function ($q) use ($saranaIds) {
                     $q->whereIn('sarana_id', $saranaIds);
                 })
@@ -248,6 +283,16 @@ class SlotConflictService
         }
 
         return $conflicts->unique('id');
+    }
+
+    protected function getStartDateTime(string $date, ?string $time): string
+    {
+        return $date . ' ' . ($time ?? '00:00:00');
+    }
+
+    protected function getEndDateTime(string $date, ?string $time): string
+    {
+        return $date . ' ' . ($time ?? '23:59:59');
     }
 
     /**
@@ -278,13 +323,12 @@ class SlotConflictService
                 ]);
             })
             ->whereHas('peminjaman', function ($query) use ($item) {
-                $query->where(function ($q) use ($item) {
-                    $q->whereBetween('start_date', [$item->peminjaman->start_date, $item->peminjaman->end_date])
-                        ->orWhereBetween('end_date', [$item->peminjaman->start_date, $item->peminjaman->end_date])
-                        ->orWhere(function ($q2) use ($item) {
-                            $q2->where('start_date', '<=', $item->peminjaman->start_date)
-                                ->where('end_date', '>=', $item->peminjaman->end_date);
-                        });
+                $startDateTime = $this->getStartDateTime($item->peminjaman->start_date, $item->peminjaman->start_time);
+                $endDateTime = $this->getEndDateTime($item->peminjaman->end_date, $item->peminjaman->end_time);
+
+                $query->where(function ($q) use ($startDateTime, $endDateTime) {
+                    $q->whereRaw('CONCAT(start_date, " ", COALESCE(start_time, "00:00:00")) <= ?', [$endDateTime])
+                        ->whereRaw('CONCAT(end_date, " ", COALESCE(end_time, "23:59:59")) >= ?', [$startDateTime]);
                 });
             })
             ->pluck('unit_id');

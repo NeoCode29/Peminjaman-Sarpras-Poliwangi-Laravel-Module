@@ -87,9 +87,9 @@ class PeminjamanController extends Controller
                 ->withInput();
         }
 
-        // Check conflicts
+        // Check conflicts (bypass for users with override permission)
         $conflict = $this->slotConflictService->checkConflicts($request);
-        if ($conflict) {
+        if ($conflict && !Auth::user()->can('peminjaman.override')) {
             return redirect()->back()
                 ->with('error', $conflict)
                 ->withInput();
@@ -193,9 +193,9 @@ class PeminjamanController extends Controller
 
         $validated = $request->validated();
 
-        // Check conflicts
+        // Check conflicts (bypass for users with override permission)
         $conflict = $this->slotConflictService->checkConflicts($request, $peminjaman->id);
-        if ($conflict) {
+        if ($conflict && !Auth::user()->can('peminjaman.override')) {
             return redirect()->back()
                 ->with('error', $conflict)
                 ->withInput();

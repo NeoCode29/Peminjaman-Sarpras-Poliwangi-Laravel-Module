@@ -84,6 +84,7 @@
                     <option value="picked_up" {{ ($filters['status'] ?? '') === 'picked_up' ? 'selected' : '' }}>Sedang Dipinjam</option>
                     <option value="returned" {{ ($filters['status'] ?? '') === 'returned' ? 'selected' : '' }}>Dikembalikan</option>
                     <option value="cancelled" {{ ($filters['status'] ?? '') === 'cancelled' ? 'selected' : '' }}>Dibatalkan</option>
+                    <option value="conflicted" {{ ($filters['status'] ?? '') === 'conflicted' ? 'selected' : '' }}>Termasuk Konflik</option>
                 </x-input.select>
             </div>
 
@@ -166,9 +167,17 @@
                                         default => 'default'
                                     };
                                 @endphp
-                                <x-badge :variant="$statusVariant" size="sm">
-                                    {{ $item->status_label }}
-                                </x-badge>
+                                <div style="display:flex;flex-wrap:wrap;gap:4px;align-items:center;">
+                                    <x-badge :variant="$statusVariant" size="sm">
+                                        {{ $item->status_label }}
+                                    </x-badge>
+
+                                    @if(!empty($item->konflik))
+                                        <x-badge variant="danger" size="sm">
+                                            Konflik
+                                        </x-badge>
+                                    @endif
+                                </div>
                             </x-table.td>
                             <x-table.td class="data-table__cell data-table__cell--action">
                                 <div style="display:flex;gap:8px;justify-content:flex-end;">
@@ -248,7 +257,9 @@
 
     {{-- Pagination --}}
     <div class="data-table__pagination">
-        {{ $peminjaman->withQueryString()->links() }}
+        @if(isset($peminjaman) && method_exists($peminjaman, 'links'))
+            {{ $peminjaman->withQueryString()->links('components.pagination') }}
+        @endif
     </div>
 
     <script>

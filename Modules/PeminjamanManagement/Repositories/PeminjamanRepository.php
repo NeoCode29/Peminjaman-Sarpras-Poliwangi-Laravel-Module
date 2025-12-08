@@ -197,7 +197,11 @@ class PeminjamanRepository implements PeminjamanRepositoryInterface
         }
 
         if (!empty($filters['status'])) {
-            $query->where('status', $filters['status']);
+            if ($filters['status'] === 'conflicted') {
+                $query->whereNotNull('konflik');
+            } else {
+                $query->where('status', $filters['status']);
+            }
         }
 
         if (!empty($filters['user_id'])) {
