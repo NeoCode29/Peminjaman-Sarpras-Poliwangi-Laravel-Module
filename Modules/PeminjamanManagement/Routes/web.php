@@ -3,6 +3,7 @@
 use Illuminate\Support\Facades\Route;
 use Modules\PeminjamanManagement\Http\Controllers\PeminjamanController;
 use Modules\PeminjamanManagement\Http\Controllers\PeminjamanApprovalController;
+use Modules\PeminjamanManagement\Http\Controllers\PeminjamanReportController;
 
 /*
 |--------------------------------------------------------------------------
@@ -16,8 +17,16 @@ use Modules\PeminjamanManagement\Http\Controllers\PeminjamanApprovalController;
 */
 
 Route::middleware(['auth', 'profile.completed'])->group(function () {
+    // Laporan Peminjaman (listing) - didefinisikan sebelum resource agar tidak tertabrak peminjaman/{peminjaman}
+    Route::get('peminjaman/reports', [PeminjamanReportController::class, 'index'])
+        ->name('peminjaman.reports.index');
+
     // Peminjaman Resource Routes
     Route::resource('peminjaman', PeminjamanController::class);
+
+    // Export peminjaman as PDF report
+    Route::get('peminjaman/export/pdf', [PeminjamanController::class, 'exportPdf'])
+        ->name('peminjaman.export.pdf');
 
     // Cancel peminjaman
     Route::post('peminjaman/{peminjaman}/cancel', [PeminjamanController::class, 'cancel'])
