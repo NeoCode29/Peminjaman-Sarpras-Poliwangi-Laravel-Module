@@ -16,14 +16,15 @@ class DatabaseSeeder extends Seeder
             PoliwangiMasterDataSeeder::class,
             UkmSeeder::class,
             AdminUserSeeder::class,
+            RoleDummyUsersSeeder::class,
             MenuSeeder::class,
             SystemSettingSeeder::class,
-            NotificationSeeder::class,
             
             // Module Seeders
             \Modules\SaranaManagement\Database\Seeders\SaranaManagementDatabaseSeeder::class,
             \Modules\PrasaranaManagement\Database\Seeders\PrasaranaManagementDatabaseSeeder::class,
             \Modules\MarkingManagement\Database\Seeders\MarkingManagementDatabaseSeeder::class,
+            \Modules\PeminjamanManagement\Database\Seeders\PeminjamanManagementDatabaseSeeder::class,
         ]);
     }
 }
