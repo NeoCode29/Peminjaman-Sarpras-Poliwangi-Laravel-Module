@@ -4,12 +4,16 @@ namespace Modules\PeminjamanManagement\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Models\Ukm;
+use Barryvdh\DomPDF\Facade\Pdf;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 use Modules\PeminjamanManagement\Entities\Peminjaman;
 use Modules\PeminjamanManagement\Http\Requests\StorePeminjamanRequest;
 use Modules\PeminjamanManagement\Http\Requests\UpdatePeminjamanRequest;
+use Modules\PeminjamanManagement\Services\PeminjamanReportService;
 use Modules\PeminjamanManagement\Services\PeminjamanService;
 use Modules\PeminjamanManagement\Services\SlotConflictService;
 use Modules\PrasaranaManagement\Entities\Prasarana;
@@ -19,7 +23,8 @@ class PeminjamanController extends Controller
 {
     public function __construct(
         private readonly PeminjamanService $peminjamanService,
-        private readonly SlotConflictService $slotConflictService
+        private readonly SlotConflictService $slotConflictService,
+        private readonly PeminjamanReportService $peminjamanReportService,
     ) {
         $this->middleware('auth');
     }
@@ -45,6 +50,32 @@ class PeminjamanController extends Controller
         $stats = $this->buildPeminjamanStats($isAdmin ? null : Auth::id());
 
         return view('peminjamanmanagement::peminjaman.index', compact('peminjaman', 'filters', 'stats'));
+    }
+
+    /**
+     * Export peminjaman list as PDF report.
+     */
+    public function exportPdf(Request $request)
+    {
+        $this->authorize('viewAny', Peminjaman::class);
+
+        $filters = $this->prepareReportFilters($request);
+
+        $rows = $this->peminjamanReportService->getPeminjamanRowsForExport($filters);
+        $summary = $this->peminjamanReportService->summarizeCollection($rows);
+
+        $startLabel = $filters['start_date'] ?? Carbon::now()->toDateString();
+        $endLabel = $filters['end_date'] ?? Carbon::now()->toDateString();
+
+        $filename = 'laporan-peminjaman-' . Carbon::parse($startLabel)->format('Ymd') . '-' . Carbon::parse($endLabel)->format('Ymd') . '.pdf';
+
+        $pdf = Pdf::loadView('peminjamanmanagement::peminjaman.report-pdf', [
+            'rows' => $rows,
+            'summary' => $summary,
+            'filters' => $filters,
+        ])->setPaper('a4', 'landscape');
+
+        return $pdf->download($filename);
     }
 
     /**
@@ -479,5 +510,44 @@ class PeminjamanController extends Controller
             'overdue' => $overdue,
             'not_picked_up' => $notPickedUp,
         ];
+    }
+
+    /**
+     * Prepare report filters for export.
+     */
+    protected function prepareReportFilters(Request $request): array
+    {
+        $defaultEnd = Carbon::now()->endOfDay();
+        $defaultStart = $defaultEnd->copy()->subMonth()->startOfDay();
+
+        $startDate = $request->input('start_date');
+        $endDate = $request->input('end_date');
+
+        try {
+            $start = $startDate ? Carbon::parse($startDate)->startOfDay() : $defaultStart;
+        } catch (\Throwable $e) {
+            $start = $defaultStart;
+        }
+
+        try {
+            $end = $endDate ? Carbon::parse($endDate)->endOfDay() : $defaultEnd;
+        } catch (\Throwable $e) {
+            $end = $defaultEnd;
+        }
+
+        if ($end->lessThan($start)) {
+            [$start, $end] = [$end->copy()->startOfDay(), $start->copy()->endOfDay()];
+        }
+
+        $filters = [
+            'start_date' => $start->toDateString(),
+            'end_date' => $end->toDateString(),
+            'status' => $request->input('status'),
+            'pickup_status' => $request->input('pickup_status'),
+            'user_id' => $request->input('user_id'),
+            'search' => $request->input('search'),
+        ];
+
+        return Arr::where($filters, static fn ($value) => !is_null($value) && $value !== '');
     }
 }

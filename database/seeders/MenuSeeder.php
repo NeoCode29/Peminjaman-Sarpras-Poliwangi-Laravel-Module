@@ -39,6 +39,18 @@ class MenuSeeder extends Seeder
                 'is_active' => true,
             ],
             [
+                'label' => 'Laporan',
+                'route' => 'peminjaman.reports.index',
+                'icon' => 'heroicon-o-chart-bar',
+                'permission' => 'report.view',
+                'active_routes' => [
+                    'peminjaman.reports.*',
+                    'peminjaman.export.pdf',
+                ],
+                'order' => 50,
+                'is_active' => true,
+            ],
+            [
                 'label' => 'Notifikasi',
                 'route' => 'notifications.index',
                 'icon' => 'heroicon-o-bell',
