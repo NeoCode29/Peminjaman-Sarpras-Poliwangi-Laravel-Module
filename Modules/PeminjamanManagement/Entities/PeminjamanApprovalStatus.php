@@ -233,15 +233,19 @@ class PeminjamanApprovalStatus extends Model
         $globalWorkflows = $workflows->where('approval_type', 'global');
         if ($globalWorkflows->isNotEmpty()) {
             $globalRejected = $globalWorkflows->where('status', 'rejected')->isNotEmpty();
-            $globalApproved = $globalWorkflows->where('status', 'approved')->isNotEmpty();
+            $globalPending = $globalWorkflows->where('status', 'pending')->isNotEmpty();
+            $globalApprovedCount = $globalWorkflows->where('status', 'approved')->count();
+            $globalTotal = $globalWorkflows->count();
 
             if ($globalRejected) {
                 $this->global_approval_status = self::GLOBAL_REJECTED;
                 $this->overall_status = self::OVERALL_REJECTED;
                 return $this->save();
-            } elseif ($globalApproved) {
+            } elseif (!$globalPending && $globalApprovedCount === $globalTotal) {
+                // Semua approver global sudah memberikan keputusan dan semuanya approve
                 $this->global_approval_status = self::GLOBAL_APPROVED;
             } else {
+                // Masih ada global yang pending, atau belum semua approve
                 $this->global_approval_status = self::GLOBAL_PENDING;
             }
         }

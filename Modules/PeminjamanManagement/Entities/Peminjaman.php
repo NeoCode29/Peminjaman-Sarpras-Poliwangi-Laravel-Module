@@ -263,10 +263,31 @@ class Peminjaman extends Model
     }
 
     /**
+     * Determine if peminjaman is overdue (sudah melewati tanggal akhir acara,
+     * sudah diambil tetapi belum divalidasi pengembaliannya).
+     */
+    public function getIsOverdueAttribute(): bool
+    {
+        if (!$this->end_date || $this->return_validated_at) {
+            return false;
+        }
+
+        if ($this->status !== self::STATUS_PICKED_UP) {
+            return false;
+        }
+
+        return now()->greaterThan($this->end_date->endOfDay());
+    }
+
+    /**
      * Get status label.
      */
     public function getStatusLabelAttribute(): string
     {
+        if ($this->is_overdue) {
+            return 'Belum Dikembalikan';
+        }
+
         return match ($this->status) {
             self::STATUS_PENDING => 'Menunggu Persetujuan',
             self::STATUS_APPROVED => 'Disetujui',
@@ -303,6 +324,27 @@ class Peminjaman extends Model
         $label = $this->status_label;
         $class = 'status-' . $status;
 
+        // Status tampilan khusus jika sudah melewati tanggal akhir namun belum dikembalikan.
+        if ($this->is_overdue) {
+            return [
+                'label' => 'Belum Dikembalikan',
+                'class' => 'status-overdue',
+            ];
+        }
+
+        // Jika status sudah pada tahap pengambilan/pengembalian/dibatalkan,
+        // tampilkan langsung status utama tanpa override approval.
+        if (in_array($status, [
+            self::STATUS_PICKED_UP,
+            self::STATUS_RETURNED,
+            self::STATUS_CANCELLED,
+        ])) {
+            return [
+                'label' => $label,
+                'class' => $class,
+            ];
+        }
+
         $approvalStatus = $this->relationLoaded('approvalStatus')
             ? $this->getRelation('approvalStatus')
             : $this->approvalStatus()->first();
@@ -310,14 +352,35 @@ class Peminjaman extends Model
         $globalStatus = optional($approvalStatus)->global_approval_status;
         $overallStatus = optional($approvalStatus)->overall_status;
 
-        if ($globalStatus === 'approved' && $overallStatus === 'pending') {
+        if ($overallStatus === \Modules\PeminjamanManagement\Entities\PeminjamanApprovalStatus::OVERALL_PARTIALLY_APPROVED) {
+            return [
+                'label' => 'Disetujui Sebagian',
+                'class' => 'status-partially-approved',
+            ];
+        }
+
+        if ($overallStatus === \Modules\PeminjamanManagement\Entities\PeminjamanApprovalStatus::OVERALL_APPROVED) {
+            return [
+                'label' => 'Disetujui',
+                'class' => 'status-approved',
+            ];
+        }
+
+        if ($overallStatus === \Modules\PeminjamanManagement\Entities\PeminjamanApprovalStatus::OVERALL_REJECTED) {
+            return [
+                'label' => 'Ditolak',
+                'class' => 'status-rejected',
+            ];
+        }
+
+        if ($globalStatus === \Modules\PeminjamanManagement\Entities\PeminjamanApprovalStatus::GLOBAL_APPROVED && $overallStatus === \Modules\PeminjamanManagement\Entities\PeminjamanApprovalStatus::OVERALL_PENDING) {
             return [
                 'label' => 'Disetujui Global',
                 'class' => 'status-approved',
             ];
         }
 
-        if ($globalStatus === 'rejected' && $overallStatus === 'pending') {
+        if ($globalStatus === \Modules\PeminjamanManagement\Entities\PeminjamanApprovalStatus::GLOBAL_REJECTED && $overallStatus === \Modules\PeminjamanManagement\Entities\PeminjamanApprovalStatus::OVERALL_PENDING) {
             return [
                 'label' => 'Ditolak Global',
                 'class' => 'status-rejected',

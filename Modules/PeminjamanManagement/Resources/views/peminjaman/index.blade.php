@@ -31,6 +31,50 @@
         </div>
     @endif
 
+    {{-- Stats Summary Matrix --}}
+    @canany(['peminjaman.approve_global', 'peminjaman.approve_specific'])
+    @if(isset($stats))
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 1rem; margin-bottom: 1.5rem;">
+        <x-stat-card 
+            label="Total Peminjaman" 
+            :value="$stats['total']"
+            icon="heroicon-o-clipboard-document-list"
+            variant="primary"
+        />
+        <x-stat-card 
+            label="Menunggu Persetujuan" 
+            :value="$stats['pending']"
+            icon="heroicon-o-clock"
+            variant="warning"
+        />
+        <x-stat-card 
+            label="Sedang Dipinjam" 
+            :value="$stats['picked_up']"
+            icon="heroicon-o-truck"
+            variant="info"
+        />
+        <x-stat-card 
+            label="Belum Dikembalikan" 
+            :value="$stats['overdue']"
+            icon="heroicon-o-exclamation-triangle"
+            variant="danger"
+        />
+        <x-stat-card 
+            label="Sudah Dikembalikan" 
+            :value="$stats['returned']"
+            icon="heroicon-o-check-circle"
+            variant="success"
+        />
+        <x-stat-card 
+            label="Dibatalkan" 
+            :value="$stats['cancelled']"
+            icon="heroicon-o-x-circle"
+            variant="secondary"
+        />
+    </div>
+    @endif
+    @endcanany
+
     {{-- Data Control --}}
     <section class="data-control" aria-label="Kontrol Data Peminjaman">
         <form method="GET" action="{{ route('peminjaman.index') }}" class="data-control__search" style="display:flex;align-items:center;width:100%;gap:12px;">
@@ -45,7 +89,7 @@
                 />
             </div>
 
-            <button class="data-control__filter-toggle" type="button" aria-expanded="false" data-filter-toggle
+            <button class="data-control__filter-toggle" type="button" aria-expanded="false" data-filter-toggle="peminjaman" onclick="togglePeminjamanFilters(this)"
                     style="background: var(--surface-card); border: 1px solid var(--border-default); cursor: pointer;display:flex;align-items:center;justify-content:center;width:40px;height:40px;border-radius:10px;">
                 <x-heroicon-o-funnel style="width: 18px; height: 18px;" />
             </button>
@@ -64,7 +108,7 @@
     </section>
 
     {{-- Filters Panel --}}
-    <section class="data-filters" id="peminjaman-data-filters" aria-label="Filter Data Peminjaman" data-filter-panel hidden>
+    <section class="data-filters" id="peminjaman-data-filters" aria-label="Filter Data Peminjaman" data-filter-panel="peminjaman" hidden>
         <form method="GET" action="{{ route('peminjaman.index') }}" class="data-filters__grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;align-items:end;">
             {{-- Pertahankan pencarian saat mengubah filter --}}
             <input type="hidden" name="search" value="{{ $filters['search'] ?? '' }}">
@@ -85,6 +129,20 @@
                     <option value="returned" {{ ($filters['status'] ?? '') === 'returned' ? 'selected' : '' }}>Dikembalikan</option>
                     <option value="cancelled" {{ ($filters['status'] ?? '') === 'cancelled' ? 'selected' : '' }}>Dibatalkan</option>
                     <option value="conflicted" {{ ($filters['status'] ?? '') === 'conflicted' ? 'selected' : '' }}>Termasuk Konflik</option>
+                </x-input.select>
+            </div>
+
+            <div>
+                <x-input.select
+                    label="Status Pengambilan"
+                    name="pickup_status"
+                    id="filter_pickup_status"
+                    placeholder="Semua"
+                    onchange="this.form.submit()"
+                >
+                    <option value="">Semua</option>
+                    <option value="not_picked" {{ ($filters['pickup_status'] ?? '') === 'not_picked' ? 'selected' : '' }}>Belum Diambil</option>
+                    <option value="picked" {{ ($filters['pickup_status'] ?? '') === 'picked' ? 'selected' : '' }}>Sudah Diambil</option>
                 </x-input.select>
             </div>
 
@@ -157,20 +215,40 @@
                             </x-table.td>
                             <x-table.td class="data-table__cell data-table__cell--meta">
                                 @php
-                                    $statusVariant = match($item->status) {
-                                        'pending' => 'warning',
-                                        'approved' => 'success',
-                                        'picked_up' => 'primary',
-                                        'returned' => 'default',
-                                        'rejected' => 'danger',
-                                        'cancelled' => 'default',
-                                        default => 'default'
+                                    $displayStatus = $item->display_status_badge;
+                                    $label = $displayStatus['label'] ?? $item->status_label;
+                                    $class = $displayStatus['class'] ?? ('status-' . $item->status);
+
+                                    $statusVariant = match (true) {
+                                        str_contains($class, 'overdue') => 'danger',
+                                        str_contains($class, 'partially-approved') => 'primary',
+                                        str_contains($class, 'approved') => 'success',
+                                        str_contains($class, 'rejected') => 'danger',
+                                        str_contains($class, 'picked_up') => 'primary',
+                                        str_contains($class, 'returned') => 'default',
+                                        str_contains($class, 'cancelled') => 'default',
+                                        str_contains($class, 'pending') => 'warning',
+                                        default => 'default',
                                     };
+                                @endphp
+                                @php
+                                    $pickupDone = !is_null($item->pickup_validated_at);
+                                    $pickupVariant = $pickupDone ? 'success' : 'warning';
+                                    $pickupLabel = $pickupDone ? 'Sudah Diambil' : 'Belum Diambil';
                                 @endphp
                                 <div style="display:flex;flex-wrap:wrap;gap:4px;align-items:center;">
                                     <x-badge :variant="$statusVariant" size="sm">
-                                        {{ $item->status_label }}
+                                        {{ $label }}
                                     </x-badge>
+
+                                    @if(!in_array($item->status, [
+                                        \Modules\PeminjamanManagement\Entities\Peminjaman::STATUS_RETURNED,
+                                        \Modules\PeminjamanManagement\Entities\Peminjaman::STATUS_CANCELLED,
+                                    ], true))
+                                        <x-badge :variant="$pickupVariant" size="sm">
+                                            {{ $pickupLabel }}
+                                        </x-badge>
+                                    @endif
 
                                     @if(!empty($item->konflik))
                                         <x-badge variant="danger" size="sm">
@@ -263,6 +341,24 @@
     </div>
 
     <script>
+    function togglePeminjamanFilters(button) {
+        var panel = document.getElementById('peminjaman-data-filters');
+        if (!panel) return;
+
+        var isHidden = panel.hasAttribute('hidden');
+        if (isHidden) {
+            panel.removeAttribute('hidden');
+            if (button) {
+                button.setAttribute('aria-expanded', 'true');
+            }
+        } else {
+            panel.setAttribute('hidden', 'hidden');
+            if (button) {
+                button.setAttribute('aria-expanded', 'false');
+            }
+        }
+    }
+
     document.addEventListener('DOMContentLoaded', function () {
         var rows = document.querySelectorAll('.data-table__table .data-table__row[data-href]');
 
@@ -279,18 +375,11 @@
             });
         });
 
-        var filterToggle = document.querySelector('[data-filter-toggle]');
-        var filterPanel = document.querySelector('[data-filter-panel]');
+        var filterToggle = document.querySelector('[data-filter-toggle="peminjaman"]');
+        var filterPanel = document.querySelector('[data-filter-panel="peminjaman"]');
         if (filterToggle && filterPanel) {
             filterToggle.addEventListener('click', function () {
-                var isHidden = filterPanel.hasAttribute('hidden');
-                if (isHidden) {
-                    filterPanel.removeAttribute('hidden');
-                    filterToggle.setAttribute('aria-expanded', 'true');
-                } else {
-                    filterPanel.setAttribute('hidden', 'hidden');
-                    filterToggle.setAttribute('aria-expanded', 'false');
-                }
+                togglePeminjamanFilters(filterToggle);
             });
         }
     });

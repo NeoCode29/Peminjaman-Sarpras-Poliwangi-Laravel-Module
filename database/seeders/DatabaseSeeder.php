@@ -16,9 +16,9 @@ class DatabaseSeeder extends Seeder
             PoliwangiMasterDataSeeder::class,
             UkmSeeder::class,
             AdminUserSeeder::class,
+            RoleDummyUsersSeeder::class,
             MenuSeeder::class,
             SystemSettingSeeder::class,
-            NotificationSeeder::class,
             
             // Module Seeders
             \Modules\SaranaManagement\Database\Seeders\SaranaManagementDatabaseSeeder::class,

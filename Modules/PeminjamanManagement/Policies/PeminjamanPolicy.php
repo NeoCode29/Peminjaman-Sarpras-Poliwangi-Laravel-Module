@@ -212,7 +212,14 @@ class PeminjamanPolicy
      */
     public function validatePickup(User $user, Peminjaman $peminjaman): bool
     {
-        if (!$peminjaman->isApproved()) {
+        if ($peminjaman->isCancelled() || $peminjaman->isReturned() || $peminjaman->isRejected()) {
+            return false;
+        }
+
+        $approvalStatus = $peminjaman->approvalStatus;
+        $globalApproved = optional($approvalStatus)->global_approval_status === 'approved';
+
+        if (!$globalApproved) {
             return false;
         }
 
@@ -236,10 +243,46 @@ class PeminjamanPolicy
      */
     public function adjustSarpras(User $user, Peminjaman $peminjaman): bool
     {
-        if (!$peminjaman->isApproved()) {
+        if ($peminjaman->isCancelled() || $peminjaman->isReturned() || $peminjaman->isRejected()) {
+            return false;
+        }
+
+        $approvalStatus = $peminjaman->approvalStatus;
+        $globalApproved = optional($approvalStatus)->global_approval_status === 'approved';
+
+        if (!$globalApproved) {
             return false;
         }
 
         return $user->hasPermissionTo('peminjaman.adjust_sarpras') || $user->hasRole('Admin Sarpras');
+    }
+
+    /**
+     * Determine whether the user (borrower) can upload pickup photo.
+     */
+    public function uploadPickupPhoto(User $user, Peminjaman $peminjaman): bool
+    {
+        if ($peminjaman->isCancelled() || $peminjaman->isReturned()) {
+            return false;
+        }
+
+        return $peminjaman->user_id === $user->id;
+    }
+
+    /**
+     * Determine whether the user (borrower) can upload return photo.
+     */
+    public function uploadReturnPhoto(User $user, Peminjaman $peminjaman): bool
+    {
+        if ($peminjaman->isCancelled() || $peminjaman->isReturned()) {
+            return false;
+        }
+
+        // Foto pengembalian hanya relevan setelah pengambilan dilakukan
+        if (!$peminjaman->isPickedUp()) {
+            return false;
+        }
+
+        return $peminjaman->user_id === $user->id;
     }
 }

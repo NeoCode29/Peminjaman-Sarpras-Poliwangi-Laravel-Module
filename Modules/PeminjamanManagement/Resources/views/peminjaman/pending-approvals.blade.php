@@ -97,6 +97,12 @@
                                 {{ optional($workflow->created_at)->format('d/m/Y H:i') }}
                             </x-table.td>
                             <x-table.td class="data-table__cell data-table__cell--action">
+                                @php
+                                    $hasKonflik = !empty($workflow->peminjaman->konflik);
+                                    $konflikInfo = $hasKonflik
+                                        ? 'Peminjaman ini terdeteksi memiliki konflik jadwal dengan peminjaman lain pada rentang waktu yang sama.'
+                                        : '';
+                                @endphp
                                 <div style="display:flex;gap:8px;justify-content:flex-end;">
                                     <a href="{{ route('peminjaman.show', $workflow->peminjaman) }}" style="text-decoration:none;" class="js-row-action">
                                         <x-button type="button" variant="secondary" size="sm">
@@ -109,7 +115,8 @@
                                         variant="success"
                                         size="sm"
                                         class="js-row-action"
-                                        onclick="openApprovalModal('{{ $workflow->id }}', 'approve')"
+                                        data-konflik-info="{{ $konflikInfo }}"
+                                        onclick="openApprovalModal(this, '{{ $workflow->id }}', 'approve')"
                                     >
                                         Setujui
                                     </x-button>
@@ -119,7 +126,7 @@
                                         variant="danger"
                                         size="sm"
                                         class="js-row-action"
-                                        onclick="openApprovalModal('{{ $workflow->id }}', 'reject')"
+                                        onclick="openApprovalModal(this, '{{ $workflow->id }}', 'reject')"
                                     >
                                         Tolak
                                     </x-button>
@@ -149,6 +156,25 @@
 
             <p id="approval_action_text" style="font-size:0.9rem;color:var(--text-muted);"></p>
 
+            <div id="approval_conflict_block" style="display:none;padding:8px 10px;border-radius:6px;border:1px solid var(--border-subtle);background:var(--warning-subtle);font-size:0.85rem;">
+                <p id="approval_conflict_text" style="margin:0 0 6px;">
+                </p>
+                <div style="display:flex;flex-direction:column;gap:4px;">
+                    <label style="display:flex;align-items:flex-start;gap:6px;">
+                        <input type="radio" name="conflict_decision" value="auto_cancel" checked>
+                        <span>
+                            Setujui peminjaman ini dan batalkan semua peminjaman lain yang berkonflik.
+                        </span>
+                    </label>
+                    <label style="display:flex;align-items:flex-start;gap:6px;">
+                        <input type="radio" name="conflict_decision" value="keep_others">
+                        <span>
+                            Setujui peminjaman ini tanpa membatalkan peminjaman lain yang berkonflik. Anda akan menangani peminjaman lain secara terpisah.
+                        </span>
+                    </label>
+                </div>
+            </div>
+
             <x-input.text
                 label="Catatan / Alasan"
                 name="reason"
@@ -168,11 +194,13 @@
     </x-modal>
 
     <script>
-    function openApprovalModal(workflowId, action) {
+    function openApprovalModal(button, workflowId, action) {
         var modal = document.getElementById('approvalActionModal');
         var form = document.getElementById('approval-action-form');
         var actionInput = document.getElementById('approval_action');
         var actionText = document.getElementById('approval_action_text');
+        var conflictBlock = document.getElementById('approval_conflict_block');
+        var conflictText = document.getElementById('approval_conflict_text');
 
         if (!modal || !form || !actionInput || !actionText) {
             return;
@@ -185,6 +213,22 @@
         actionText.textContent = action === 'reject'
             ? 'Anda akan menolak peminjaman ini. Anda dapat menambahkan alasan penolakan di bawah.'
             : 'Anda akan menyetujui peminjaman ini. Anda dapat menambahkan catatan di bawah (opsional).';
+
+        if (conflictBlock && conflictText) {
+            if (action === 'approve' && button) {
+                var info = button.getAttribute('data-konflik-info') || '';
+                if (info) {
+                    conflictBlock.style.display = 'block';
+                    conflictText.textContent = info + ' Pilih bagaimana Anda ingin menangani peminjaman yang berkonflik.';
+                } else {
+                    conflictBlock.style.display = 'none';
+                    conflictText.textContent = '';
+                }
+            } else {
+                conflictBlock.style.display = 'none';
+                conflictText.textContent = '';
+            }
+        }
 
         form.action = actionUrlTemplate.replace('__ID__', workflowId.split(':')[0]);
 

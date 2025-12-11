@@ -44,6 +44,12 @@ Route::middleware(['auth', 'profile.completed'])->group(function () {
         // Assign units
         Route::post('assign-units', [PeminjamanApprovalController::class, 'assignUnits'])
             ->name('assign-units');
+
+        // Borrower photo uploads
+        Route::post('upload-pickup-photo', [PeminjamanController::class, 'uploadPickupPhoto'])
+            ->name('upload-pickup-photo');
+        Route::post('upload-return-photo', [PeminjamanController::class, 'uploadReturnPhoto'])
+            ->name('upload-return-photo');
     });
 
     // Pending approvals for current user

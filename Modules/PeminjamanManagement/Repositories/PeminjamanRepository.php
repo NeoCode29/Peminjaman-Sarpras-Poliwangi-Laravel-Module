@@ -212,6 +212,14 @@ class PeminjamanRepository implements PeminjamanRepositoryInterface
             $query->where('prasarana_id', $filters['prasarana_id']);
         }
 
+        if (!empty($filters['pickup_status'])) {
+            if ($filters['pickup_status'] === 'picked') {
+                $query->whereNotNull('pickup_validated_at');
+            } elseif ($filters['pickup_status'] === 'not_picked') {
+                $query->whereNull('pickup_validated_at');
+            }
+        }
+
         if (!empty($filters['start_date'])) {
             $query->where('start_date', '>=', $filters['start_date']);
         }

@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Ukm;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Storage;
 use Modules\PeminjamanManagement\Entities\Peminjaman;
 use Modules\PeminjamanManagement\Http\Requests\StorePeminjamanRequest;
 use Modules\PeminjamanManagement\Http\Requests\UpdatePeminjamanRequest;
@@ -30,16 +31,20 @@ class PeminjamanController extends Controller
     {
         $this->authorize('viewAny', Peminjaman::class);
 
-        $filters = $request->only(['search', 'status', 'start_date', 'end_date']);
+        $filters = $request->only(['search', 'status', 'pickup_status', 'start_date', 'end_date']);
 
         // Non-admin users only see their own peminjaman
-        if (!Auth::user()->hasPermissionTo('peminjaman.view')) {
+        $isAdmin = Auth::user()->hasPermissionTo('peminjaman.view');
+        if (!$isAdmin) {
             $filters['user_id'] = Auth::id();
         }
 
         $peminjaman = $this->peminjamanService->getPeminjaman($filters, 15);
 
-        return view('peminjamanmanagement::peminjaman.index', compact('peminjaman', 'filters'));
+        // Build stats for matrix
+        $stats = $this->buildPeminjamanStats($isAdmin ? null : Auth::id());
+
+        return view('peminjamanmanagement::peminjaman.index', compact('peminjaman', 'filters', 'stats'));
     }
 
     /**
@@ -144,8 +149,46 @@ class PeminjamanController extends Controller
         // Build approval summaries
         $approvalData = $this->buildApprovalData($peminjaman);
 
+        $serializedUnitOptions = [];
+        if (auth()->user()?->can('adjustSarpras', $peminjaman)) {
+            $serializedUnitOptions = $peminjaman->items
+                ->filter(function ($item) {
+                    return optional($item->sarana)->type === 'serialized';
+                })
+                ->mapWithKeys(function ($item) {
+                    $activeAssignments = $item->units->where('status', 'active');
+                    $assignedUnits = $activeAssignments->pluck('unit_id');
+
+                    $unitCollection = \Modules\SaranaManagement\Entities\SaranaUnit::where('sarana_id', $item->sarana_id)
+                        ->orderBy('unit_code')
+                        ->get();
+
+                    $units = $unitCollection
+                        ->map(function ($unit) use ($assignedUnits) {
+                            $isAssignedHere = $assignedUnits->contains($unit->id);
+
+                            return [
+                                'id' => $unit->id,
+                                'unit_code' => $unit->unit_code,
+                                'status' => $unit->unit_status,
+                                'is_assigned_to_this' => $isAssignedHere,
+                            ];
+                        })
+                        ->values();
+
+                    return [$item->id => [
+                        'max_selectable' => $item->qty_approved ?? $item->qty_requested,
+                        'requested' => $item->qty_requested,
+                        'approved' => $item->qty_approved,
+                        'units' => $units->toArray(),
+                        'selected_count' => $assignedUnits->count(),
+                    ]];
+                })
+                ->toArray();
+        }
+
         return view('peminjamanmanagement::peminjaman.show', array_merge(
-            compact('peminjaman'),
+            compact('peminjaman', 'serializedUnitOptions'),
             $approvalData
         ));
     }
@@ -273,6 +316,74 @@ class PeminjamanController extends Controller
     }
 
     /**
+     * Upload pickup photo by borrower.
+     */
+    public function uploadPickupPhoto(Request $request, Peminjaman $peminjaman)
+    {
+        $this->authorize('uploadPickupPhoto', $peminjaman);
+
+        $request->validate([
+            'foto' => ['required', 'image', 'mimes:jpg,jpeg,png', 'max:5120'],
+        ]);
+
+        try {
+            $file = $request->file('foto');
+            $dir = 'peminjaman/pickup/' . date('Y/m');
+
+            // Hapus foto lama jika ada
+            if ($peminjaman->foto_pickup_path) {
+                Storage::disk('public')->delete($peminjaman->foto_pickup_path);
+            }
+
+            $path = $file->store($dir, 'public');
+
+            $peminjaman->update([
+                'foto_pickup_path' => $path,
+            ]);
+
+            return redirect()->route('peminjaman.show', $peminjaman)
+                ->with('success', 'Foto pengambilan berhasil diunggah.');
+        } catch (\Exception $e) {
+            return redirect()->back()
+                ->with('error', 'Gagal mengunggah foto pengambilan: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Upload return photo by borrower.
+     */
+    public function uploadReturnPhoto(Request $request, Peminjaman $peminjaman)
+    {
+        $this->authorize('uploadReturnPhoto', $peminjaman);
+
+        $request->validate([
+            'foto' => ['required', 'image', 'mimes:jpg,jpeg,png', 'max:5120'],
+        ]);
+
+        try {
+            $file = $request->file('foto');
+            $dir = 'peminjaman/return/' . date('Y/m');
+
+            // Hapus foto lama jika ada
+            if ($peminjaman->foto_return_path) {
+                Storage::disk('public')->delete($peminjaman->foto_return_path);
+            }
+
+            $path = $file->store($dir, 'public');
+
+            $peminjaman->update([
+                'foto_return_path' => $path,
+            ]);
+
+            return redirect()->route('peminjaman.show', $peminjaman)
+                ->with('success', 'Foto pengembalian berhasil diunggah.');
+        } catch (\Exception $e) {
+            return redirect()->back()
+                ->with('error', 'Gagal mengunggah foto pengembalian: ' . $e->getMessage());
+        }
+    }
+
+    /**
      * Build approval data for show view.
      */
     protected function buildApprovalData(Peminjaman $peminjaman): array
@@ -324,6 +435,49 @@ class PeminjamanController extends Controller
             'overrideApprovals' => $overrideApprovals,
             'konflikMembers' => $konflikMembers,
             'approvalActionSummary' => $approvalActionSummary,
+        ];
+    }
+
+    /**
+     * Build peminjaman statistics for dashboard matrix.
+     */
+    protected function buildPeminjamanStats(?int $userId = null): array
+    {
+        $query = Peminjaman::query();
+
+        if ($userId) {
+            $query->where('user_id', $userId);
+        }
+
+        $total = (clone $query)->count();
+        $pending = (clone $query)->where('status', Peminjaman::STATUS_PENDING)->count();
+        $approved = (clone $query)->where('status', Peminjaman::STATUS_APPROVED)->count();
+        $pickedUp = (clone $query)->where('status', Peminjaman::STATUS_PICKED_UP)->count();
+        $returned = (clone $query)->where('status', Peminjaman::STATUS_RETURNED)->count();
+        $cancelled = (clone $query)->where('status', Peminjaman::STATUS_CANCELLED)->count();
+
+        // Overdue: picked_up, past end_date, not returned
+        $overdue = (clone $query)
+            ->where('status', Peminjaman::STATUS_PICKED_UP)
+            ->whereNull('return_validated_at')
+            ->whereDate('end_date', '<', now()->toDateString())
+            ->count();
+
+        // Belum diambil: approved tapi belum pickup
+        $notPickedUp = (clone $query)
+            ->where('status', Peminjaman::STATUS_APPROVED)
+            ->whereNull('pickup_validated_at')
+            ->count();
+
+        return [
+            'total' => $total,
+            'pending' => $pending,
+            'approved' => $approved,
+            'picked_up' => $pickedUp,
+            'returned' => $returned,
+            'cancelled' => $cancelled,
+            'overdue' => $overdue,
+            'not_picked_up' => $notPickedUp,
         ];
     }
 }

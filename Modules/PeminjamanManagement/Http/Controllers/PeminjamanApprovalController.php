@@ -28,6 +28,7 @@ class PeminjamanApprovalController extends Controller
         $action = $validated['action'];
         $approvalType = $validated['approval_type'];
         $notes = $validated['notes'] ?? $validated['reason'] ?? null;
+        $conflictDecision = $request->input('conflict_decision');
 
         try {
             switch ($approvalType) {
@@ -35,7 +36,7 @@ class PeminjamanApprovalController extends Controller
                     $this->authorize($action === 'approve' ? 'approveGlobal' : 'rejectGlobal', $peminjaman);
 
                     if ($action === 'approve') {
-                        $this->approvalService->approveGlobal($peminjaman->id, Auth::id(), $notes);
+                        $this->approvalService->approveGlobal($peminjaman->id, Auth::id(), $notes, $conflictDecision);
                     } else {
                         $this->approvalService->rejectGlobal($peminjaman->id, Auth::id(), $notes);
                     }
@@ -112,7 +113,6 @@ class PeminjamanApprovalController extends Controller
         $this->authorize('validatePickup', $peminjaman);
 
         $request->validate([
-            'foto' => ['nullable', 'image', 'mimes:jpg,jpeg,png', 'max:5120'],
             'unit_assignments' => ['nullable', 'array'],
             'unit_assignments.*' => ['array'],
             'unit_assignments.*.*' => ['integer', 'exists:sarana_units,id'],
@@ -122,8 +122,9 @@ class PeminjamanApprovalController extends Controller
             $this->pickupReturnService->validatePickup(
                 $peminjaman,
                 Auth::id(),
-                $request->file('foto'),
-                $request->input('unit_assignments', [])
+                null,
+                $request->input('unit_assignments', []),
+                $request->input('pooled_pickup_items', [])
             );
 
             return redirect()->route('peminjaman.show', $peminjaman)
@@ -142,14 +143,20 @@ class PeminjamanApprovalController extends Controller
         $this->authorize('validateReturn', $peminjaman);
 
         $request->validate([
-            'foto' => ['nullable', 'image', 'mimes:jpg,jpeg,png', 'max:5120'],
+            'unit_assignments' => ['nullable', 'array'],
+            'unit_assignments.*' => ['array'],
+            'unit_assignments.*.*' => ['integer', 'exists:sarana_units,id'],
+            'pooled_return_items' => ['nullable', 'array'],
+            'pooled_return_items.*' => ['integer', 'exists:peminjaman_items,id'],
         ]);
 
         try {
             $this->pickupReturnService->validateReturn(
                 $peminjaman,
                 Auth::id(),
-                $request->file('foto')
+                null,
+                $request->input('unit_assignments', []),
+                $request->input('pooled_return_items', [])
             );
 
             return redirect()->route('peminjaman.show', $peminjaman)

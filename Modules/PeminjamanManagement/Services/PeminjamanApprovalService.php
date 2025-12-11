@@ -104,7 +104,7 @@ class PeminjamanApprovalService
     /**
      * Approve global approval.
      */
-    public function approveGlobal(int $peminjamanId, int $approverId, ?string $notes = null): bool
+    public function approveGlobal(int $peminjamanId, int $approverId, ?string $notes = null, ?string $conflictDecision = null): bool
     {
         try {
             DB::beginTransaction();
@@ -124,14 +124,22 @@ class PeminjamanApprovalService
                 $approvalStatus->updateOverallStatus();
             }
 
-            // Cancel konflik members if all global approved
+            // Batalkan anggota konflik jika semua approval global sudah disetujui,
+            // kecuali approver memilih untuk tetap mempertahankan peminjaman lain.
             $globalPending = PeminjamanApprovalWorkflow::forPeminjaman($peminjamanId)
                 ->global()
                 ->pending()
                 ->exists();
 
             if (!$globalPending) {
-                $this->cancelKonflikMembers(Peminjaman::find($peminjamanId));
+                $peminjaman = Peminjaman::find($peminjamanId);
+
+                if ($peminjaman && !empty($peminjaman->konflik)) {
+                    if ($conflictDecision !== 'keep_others') {
+                        $this->cancelKonflikMembers($peminjaman);
+                    }
+                    // Jika conflictDecision === 'keep_others', tidak membatalkan anggota konflik.
+                }
             }
 
             DB::commit();
@@ -398,10 +406,40 @@ class PeminjamanApprovalService
      */
     public function getPendingApprovals(int $approverId): Collection
     {
-        return PeminjamanApprovalWorkflow::forApprover($approverId)
+        $workflows = PeminjamanApprovalWorkflow::forApprover($approverId)
             ->pending()
             ->with(['peminjaman', 'sarana', 'prasarana'])
             ->get();
+
+        // Hanya kembalikan workflow yang berada pada level terendah yang masih pending
+        return $workflows->filter(function (PeminjamanApprovalWorkflow $workflow) {
+            return $this->isLowestPendingLevel($workflow);
+        })->values();
+    }
+
+    /**
+     * Check whether the given workflow is at the lowest pending level
+     * for its (peminjaman, approval_type, resource) context.
+     */
+    protected function isLowestPendingLevel(PeminjamanApprovalWorkflow $workflow): bool
+    {
+        $query = PeminjamanApprovalWorkflow::forPeminjaman($workflow->peminjaman_id)
+            ->byType($workflow->approval_type)
+            ->pending();
+
+        if ($workflow->isSpecificSarana() && $workflow->sarana_id) {
+            $query->forSarana($workflow->sarana_id);
+        } elseif ($workflow->isSpecificPrasarana() && $workflow->prasarana_id) {
+            $query->forPrasarana($workflow->prasarana_id);
+        }
+
+        $minLevel = $query->min('approval_level');
+
+        if ($minLevel === null) {
+            return false;
+        }
+
+        return (int) $workflow->approval_level === (int) $minLevel;
     }
 
     /**
@@ -483,6 +521,7 @@ class PeminjamanApprovalService
         $workflow = PeminjamanApprovalWorkflow::forPeminjaman($peminjamanId)
             ->forApprover($approverId)
             ->global()
+            ->pending()
             ->first();
 
         if (!$workflow) {
@@ -497,6 +536,10 @@ class PeminjamanApprovalService
             }
         }
 
+        if ($workflow && !$this->isLowestPendingLevel($workflow)) {
+            return null;
+        }
+
         return $workflow;
     }
 
@@ -509,6 +552,7 @@ class PeminjamanApprovalService
             ->forApprover($approverId)
             ->specificSarana()
             ->forSarana($saranaId)
+            ->pending()
             ->first();
 
         if (!$workflow) {
@@ -523,6 +567,10 @@ class PeminjamanApprovalService
             }
         }
 
+        if ($workflow && !$this->isLowestPendingLevel($workflow)) {
+            return null;
+        }
+
         return $workflow;
     }
 
@@ -535,6 +583,7 @@ class PeminjamanApprovalService
             ->forApprover($approverId)
             ->specificPrasarana()
             ->forPrasarana($prasaranaId)
+            ->pending()
             ->first();
 
         if (!$workflow) {
@@ -547,6 +596,10 @@ class PeminjamanApprovalService
                     ->orderBy('approval_level')
                     ->first();
             }
+        }
+
+        if ($workflow && !$this->isLowestPendingLevel($workflow)) {
+            return null;
         }
 
         return $workflow;

@@ -149,22 +149,28 @@ class PeminjamanService
 
             // Update items if provided
             if (!empty($saranaItems)) {
+                // Ambil mapping item lama per sarana_id untuk mempertahankan qty_approved
+                $oldItemsBySarana = $peminjaman->items
+                    ->keyBy('sarana_id');
+
                 // Delete existing items
                 $peminjaman->items()->delete();
 
                 // Create new items
                 foreach ($saranaItems as $item) {
+                    $oldItem = $oldItemsBySarana->get($item['sarana_id']);
+
                     PeminjamanItem::create([
                         'peminjaman_id' => $peminjaman->id,
                         'sarana_id' => $item['sarana_id'],
                         'qty_requested' => $item['qty_requested'],
-                        'qty_approved' => null,
+                        'qty_approved' => $oldItem?->qty_approved,
                         'notes' => $item['notes'] ?? null,
                     ]);
                 }
 
                 // Recreate approval workflows for new items
-                $this->recreateApprovalWorkflows($peminjaman);
+                $this->syncApprovalWorkflowsAfterItemsChanged($peminjaman);
             }
 
             Log::info('Peminjaman updated', [
@@ -379,6 +385,68 @@ class PeminjamanService
 
         // Create new workflows
         $this->createApprovalWorkflows($peminjaman);
+    }
+
+    protected function syncApprovalWorkflowsAfterItemsChanged(Peminjaman $peminjaman): void
+    {
+        $currentPrasaranaId = $peminjaman->prasarana_id;
+
+        // Prasarana workflows
+        if ($currentPrasaranaId) {
+            // Hapus workflow prasarana yang tidak lagi sesuai dengan prasarana sekarang
+            $peminjaman->approvalWorkflow()
+                ->where('approval_type', PeminjamanApprovalWorkflow::TYPE_PRASARANA)
+                ->where('prasarana_id', '!=', $currentPrasaranaId)
+                ->delete();
+
+            $prasaranaApprovers = PrasaranaApprover::active()
+                ->forPrasarana($currentPrasaranaId)
+                ->get();
+
+            foreach ($prasaranaApprovers as $pa) {
+                PeminjamanApprovalWorkflow::firstOrCreate([
+                    'peminjaman_id' => $peminjaman->id,
+                    'approver_id' => $pa->approver_id,
+                    'approval_type' => PeminjamanApprovalWorkflow::TYPE_PRASARANA,
+                    'sarana_id' => null,
+                    'prasarana_id' => $currentPrasaranaId,
+                ], [
+                    'approval_level' => $pa->approval_level,
+                ]);
+            }
+        } else {
+            // Jika sekarang tidak ada prasarana, hapus semua workflow prasarana
+            $peminjaman->approvalWorkflow()
+                ->where('approval_type', PeminjamanApprovalWorkflow::TYPE_PRASARANA)
+                ->delete();
+        }
+
+        // Sarana workflows
+        $saranaIds = $peminjaman->items()->pluck('sarana_id')->unique();
+
+        // Hapus workflow sarana yang tidak lagi ada di daftar item
+        $peminjaman->approvalWorkflow()
+            ->where('approval_type', PeminjamanApprovalWorkflow::TYPE_SARANA)
+            ->whereNotIn('sarana_id', $saranaIds)
+            ->delete();
+
+        foreach ($saranaIds as $saranaId) {
+            $saranaApprovers = SaranaApprover::active()
+                ->forSarana($saranaId)
+                ->get();
+
+            foreach ($saranaApprovers as $sa) {
+                PeminjamanApprovalWorkflow::firstOrCreate([
+                    'peminjaman_id' => $peminjaman->id,
+                    'approver_id' => $sa->approver_id,
+                    'approval_type' => PeminjamanApprovalWorkflow::TYPE_SARANA,
+                    'sarana_id' => $saranaId,
+                    'prasarana_id' => null,
+                ], [
+                    'approval_level' => $sa->approval_level,
+                ]);
+            }
+        }
     }
 
     /**

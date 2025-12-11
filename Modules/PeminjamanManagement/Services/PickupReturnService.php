@@ -22,9 +22,10 @@ class PickupReturnService
         Peminjaman $peminjaman,
         int $validatedBy,
         ?UploadedFile $fotoFile = null,
-        array $unitAssignments = []
+        array $unitAssignments = [],
+        array $pooledPickupItemIds = []
     ): Peminjaman {
-        return DB::transaction(function () use ($peminjaman, $validatedBy, $fotoFile, $unitAssignments) {
+        return DB::transaction(function () use ($peminjaman, $validatedBy, $fotoFile, $unitAssignments, $pooledPickupItemIds) {
             $oldStatus = $peminjaman->status;
             // Upload foto if provided
             $fotoPath = null;
@@ -32,18 +33,61 @@ class PickupReturnService
                 $fotoPath = $this->storeFile($fotoFile, 'peminjaman/pickup');
             }
 
-            // Assign serialized units if provided
+            // Jika ada pilihan unit per-item saat pickup, sinkronkan assignment menggunakan
+            // mekanisme yang sama dengan assign-units (updateUnitAssignments)
             if (!empty($unitAssignments)) {
-                $this->assignSerializedUnits($peminjaman, $unitAssignments, $validatedBy);
+                foreach ($unitAssignments as $itemId => $unitIds) {
+                    $item = $peminjaman->items()->find($itemId);
+
+                    if (!$item) {
+                        continue;
+                    }
+
+                    $this->updateUnitAssignments($item, (array) $unitIds, $validatedBy);
+                }
+            }
+
+            // Pastikan semua sarana serialized yang membutuhkan unit sudah memiliki minimal 1 unit aktif
+            // dan semua sarana pooled yang disetujui sudah ditandai diambil.
+            $peminjaman->loadMissing(['items.sarana', 'items.units']);
+
+            foreach ($peminjaman->items as $item) {
+                if (optional($item->sarana)->type !== 'serialized') {
+                    continue;
+                }
+
+                $maxSelectable = $item->qty_approved ?? $item->qty_requested;
+                if ($maxSelectable && $item->units()->active()->count() === 0) {
+                    throw new \InvalidArgumentException('Masih ada sarana yang membutuhkan unit tetapi belum ada unit yang dipilih pada saat pengambilan.');
+                }
+            }
+
+            // Validasi sederhana untuk sarana pooled: semua item non-serialized dengan qty_approved > 0
+            // wajib dicentang pada checklist pengambilan.
+            $pooledPickupItemIds = collect($pooledPickupItemIds)->map(fn ($id) => (int) $id)->filter()->values();
+            $requiredPooledItems = $peminjaman->items
+                ->filter(fn ($item) => optional($item->sarana)->type !== 'serialized' && ($item->qty_approved ?? $item->qty_requested) > 0)
+                ->pluck('id');
+
+            if ($requiredPooledItems->isNotEmpty()) {
+                $missingIds = $requiredPooledItems->diff($pooledPickupItemIds);
+                if ($missingIds->isNotEmpty()) {
+                    throw new \InvalidArgumentException('Masih ada sarana non-serialized yang disetujui tetapi belum ditandai diambil pada checklist.');
+                }
             }
 
             // Update peminjaman status
-            $peminjaman->update([
+            $updateData = [
                 'status' => Peminjaman::STATUS_PICKED_UP,
                 'pickup_validated_by' => $validatedBy,
                 'pickup_validated_at' => now(),
-                'foto_pickup_path' => $fotoPath,
-            ]);
+            ];
+
+            if ($fotoPath !== null) {
+                $updateData['foto_pickup_path'] = $fotoPath;
+            }
+
+            $peminjaman->update($updateData);
 
             Log::info('Pickup validated', [
                 'peminjaman_id' => $peminjaman->id,
@@ -66,9 +110,11 @@ class PickupReturnService
     public function validateReturn(
         Peminjaman $peminjaman,
         int $validatedBy,
-        ?UploadedFile $fotoFile = null
+        ?UploadedFile $fotoFile = null,
+        array $unitAssignments = [],
+        array $pooledReturnItemIds = []
     ): Peminjaman {
-        return DB::transaction(function () use ($peminjaman, $validatedBy, $fotoFile) {
+        return DB::transaction(function () use ($peminjaman, $validatedBy, $fotoFile, $unitAssignments, $pooledReturnItemIds) {
             $oldStatus = $peminjaman->status;
             // Upload foto if provided
             $fotoPath = null;
@@ -76,16 +122,96 @@ class PickupReturnService
                 $fotoPath = $this->storeFile($fotoFile, 'peminjaman/return');
             }
 
-            // Release all serialized units
-            $this->releaseSerializedUnits($peminjaman, $validatedBy);
+            // Jika ada pilihan unit per-item saat pengembalian, lepas hanya unit tersebut (partial return).
+            // Jika tidak ada, fallback ke perilaku lama: lepas semua unit aktif.
+            if (!empty($unitAssignments)) {
+                foreach ($unitAssignments as $itemId => $unitIds) {
+                    $item = $peminjaman->items()->find($itemId);
+
+                    if (!$item) {
+                        continue;
+                    }
+
+                    $unitIds = (array) $unitIds;
+                    if (empty($unitIds)) {
+                        continue;
+                    }
+
+                    $assignments = PeminjamanItemUnit::forPeminjamanItem($item->id)
+                        ->forPeminjaman($peminjaman->id)
+                        ->active()
+                        ->whereIn('unit_id', $unitIds)
+                        ->get();
+
+                    foreach ($assignments as $assignment) {
+                        $assignment->update([
+                            'status' => PeminjamanItemUnit::STATUS_RELEASED,
+                            'released_by' => $validatedBy,
+                            'released_at' => now(),
+                        ]);
+
+                        if ($assignment->unit) {
+                            $assignment->unit->update(['unit_status' => 'tersedia']);
+                        }
+                    }
+                }
+
+                // Update stats per sarana
+                $saranaIds = $peminjaman->items()->pluck('sarana_id')->unique();
+                foreach ($saranaIds as $saranaId) {
+                    $sarana = \Modules\SaranaManagement\Entities\Sarana::find($saranaId);
+                    if ($sarana) {
+                        $sarana->updateStats();
+                    }
+                }
+            } else {
+                // Release all serialized units (behaviour lama)
+                $this->releaseSerializedUnits($peminjaman, $validatedBy);
+            }
+
+            // Proses sarana pooled yang ditandai sudah dikembalikan penuh
+            $pooledReturnItemIds = collect($pooledReturnItemIds)->map(fn ($id) => (int) $id)->filter()->values();
+            if ($pooledReturnItemIds->isNotEmpty()) {
+                $items = $peminjaman->items()
+                    ->whereIn('id', $pooledReturnItemIds)
+                    ->get();
+
+                foreach ($items as $item) {
+                    // Hanya untuk sarana non-serialized (pooled)
+                    if (optional($item->sarana)->type !== 'serialized') {
+                        $item->update(['qty_approved' => 0]);
+                    }
+                }
+            }
+
+            // Tentukan status peminjaman setelah pengembalian: jika masih ada unit aktif, tetap picked_up.
+            $hasActiveSerializedUnits = PeminjamanItemUnit::forPeminjaman($peminjaman->id)
+                ->active()
+                ->exists();
+
+            $hasActivePooledItems = $peminjaman->items()
+                ->whereHas('sarana', function ($q) {
+                    $q->where('type', '!=', 'serialized');
+                })
+                ->where('qty_approved', '>', 0)
+                ->exists();
+
+            $hasActiveUnits = $hasActiveSerializedUnits || $hasActivePooledItems;
+
+            $newStatus = $hasActiveUnits ? Peminjaman::STATUS_PICKED_UP : Peminjaman::STATUS_RETURNED;
 
             // Update peminjaman status
-            $peminjaman->update([
-                'status' => Peminjaman::STATUS_RETURNED,
+            $updateData = [
+                'status' => $newStatus,
                 'return_validated_by' => $validatedBy,
                 'return_validated_at' => now(),
-                'foto_return_path' => $fotoPath,
-            ]);
+            ];
+
+            if ($fotoPath !== null) {
+                $updateData['foto_return_path'] = $fotoPath;
+            }
+
+            $peminjaman->update($updateData);
 
             Log::info('Return validated', [
                 'peminjaman_id' => $peminjaman->id,
@@ -141,7 +267,7 @@ class PickupReturnService
                 ]);
 
                 // Update unit status
-                $unit->update(['unit_status' => 'dipinjam']);
+                $unit->update(['unit_status' => 'maintenance']);
             }
 
             // Update qty_approved
@@ -200,6 +326,11 @@ class PickupReturnService
             $peminjaman = $item->peminjaman;
             $selectedUnitIds = collect($selectedUnitIds)->map(fn ($id) => (int) $id)->filter()->values();
 
+            $maxSelectable = $item->qty_approved ?? $item->qty_requested;
+            if ($maxSelectable !== null && $selectedUnitIds->count() > $maxSelectable) {
+                throw new \InvalidArgumentException('Jumlah unit yang dipilih melebihi jumlah yang diperbolehkan untuk item ini.');
+            }
+
             // Get existing assignments
             $existingAssignments = PeminjamanItemUnit::forPeminjamanItem($item->id)
                 ->forPeminjaman($peminjaman->id)
@@ -257,7 +388,7 @@ class PickupReturnService
                             'status' => PeminjamanItemUnit::STATUS_ACTIVE,
                         ]);
 
-                        $unit->update(['unit_status' => 'dipinjam']);
+                        $unit->update(['unit_status' => 'maintenance']);
                     }
                 }
             }
