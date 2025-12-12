@@ -41,6 +41,8 @@ Route::middleware(['auth', 'user.not.blocked'])->group(function () {
 
     Route::middleware('profile.completed')->group(function () {
         Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+        Route::get('/dashboard/calendar-events', [DashboardController::class, 'calendarEvents'])
+            ->name('dashboard.calendar-events');
 
         // Profile Management Routes
         Route::get('/profile', [ProfileController::class, 'show'])->name('profile.show');

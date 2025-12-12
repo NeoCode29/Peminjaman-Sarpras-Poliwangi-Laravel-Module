@@ -558,9 +558,20 @@ function initCalendarDashboard() {
             }
             
             const eventsHtml = eventsOnDay.map(event => {
+                const type = event.type || 'peminjaman';
+                const typeLabel = type === 'marking' ? 'Marking' : 'Peminjaman';
+                const typeColor = type === 'marking'
+                    ? 'background: var(--color-yellow-100, #fff7cc); color: #8a6d00;'
+                    : 'background: var(--color-blue-100, #e3f2fd); color: #0d47a1;';
+
                 return `
                     <div class="c-calendar-dashboard__event">
-                        <h4 class="c-calendar-dashboard__event-title">${event.title || 'Event'}</h4>
+                        <h4 class="c-calendar-dashboard__event-title">
+                            <span style="display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:999px;font-size:0.7rem;font-weight:600;${typeColor}">
+                                ${typeLabel}
+                            </span>
+                            <span style="margin-left:6px;">${event.title || 'Event'}</span>
+                        </h4>
                         <div class="c-calendar-dashboard__event-meta">
                             ${event.time ? `
                                 <div class="c-calendar-dashboard__event-meta-item">
@@ -646,6 +657,7 @@ function initCalendarDashboard() {
             // Add some demo events
             demoEvents.push({
                 date: formatDate(new Date(year, month, 5)),
+                type: 'peminjaman',
                 title: 'Peminjaman Projector',
                 time: '09:00 - 12:00',
                 location: 'Ruang 301',
@@ -654,6 +666,7 @@ function initCalendarDashboard() {
             
             demoEvents.push({
                 date: formatDate(new Date(year, month, 5)),
+                type: 'peminjaman',
                 title: 'Peminjaman Laptop',
                 time: '13:00 - 16:00',
                 location: 'Lab Komputer',
@@ -662,6 +675,7 @@ function initCalendarDashboard() {
             
             demoEvents.push({
                 date: formatDate(new Date(year, month, 15)),
+                type: 'peminjaman',
                 title: 'Peminjaman Ruang Meeting',
                 time: '10:00 - 14:00',
                 location: 'Gedung A',
@@ -670,6 +684,7 @@ function initCalendarDashboard() {
             
             demoEvents.push({
                 date: formatDate(new Date(year, month, 20)),
+                type: 'peminjaman',
                 title: 'Peminjaman Alat Olahraga',
                 time: '08:00 - 10:00',
                 location: 'Lapangan',
